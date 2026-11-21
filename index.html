@@ -1,0 +1,2969 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wellness Card Finder AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a counter-side lookup tool — search + need chips on top, dense tappable package rows below, details open in place. */
+:root{
+  --bg:#f4f8fa; --surface:#ffffff; --ink:#003b48; --muted:#55707a;
+  --line:#dbe6ea; --accent:#003b48; --accent-soft:#e3f1f6; --price:#e2551b;
+  --warn:#b05f00; --warn-soft:#fff2dc; --ok:#4f9e2a;
+  --n-red:#ea2127; --n-orange:#f6971f; --n-lime:#d0dd4f; --n-green:#74be43; --n-sky:#27a5df; --n-blue:#1c75b9; --n-purple:#822c8d;
+  --sc:var(--n-sky);
+  --display:"Readex Pro","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --body:"IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 48px}
+header{display:flex;flex-direction:column;gap:4px;padding:8px 0 12px}
+h1{font-family:var(--display);font-size:22px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+.sticky{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)}
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.search input:focus{outline:none;border-color:var(--accent)}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer}
+.btn:focus-visible,.chip:focus-visible,.tab:focus-visible,.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sticky>*,.wrap>*{min-width:0}
+.wrap{overflow-x:clip}
+.chips{display:flex;gap:6px;overflow-x:auto;max-width:100%;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.segs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.seg{font:inherit;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 3px;min-width:0;text-align:center;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.seg .ic{font-size:20px;line-height:1.2}
+.seg b{font-family:var(--display);font-size:15px}
+.seg small{font-size:11px;color:var(--muted)}
+.seg[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg[aria-selected="true"] small{color:#e6f6f4}
+.seg:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sech{font-family:var(--display);font-size:17px;margin:14px 0 2px}
+.sech small{font-size:12px;color:var(--muted);font-weight:500}
+.subh{font-size:13px;color:var(--accent);margin:12px 2px 2px;font-weight:700}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{font:inherit;font-size:13px;font-weight:600;border:none;background:transparent;color:var(--muted);padding:6px 10px;border-radius:8px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.vat{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.vat input{accent-color:var(--accent);width:16px;height:16px}
+.count{font-size:12.5px;color:var(--muted);margin:12px 0 6px}
+.list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.card.poc .row{padding-top:9px;padding-bottom:9px}.card.poc .nm{font-size:15px}.card.poc .en{font-size:11.5px}
+.card[data-open="true"]{border-color:var(--accent)}
+.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 14px;cursor:pointer;width:100%;text-align:inherit;background:none;border:none;color:inherit;font:inherit}
+.nm{font-family:var(--display);font-weight:600;font-size:15.5px;line-height:1.35}
+.en{font-size:12px;color:var(--muted);direction:ltr;text-align:right}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.tag{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tag.w{background:var(--warn-soft);color:var(--warn)}
+.pr{text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pr b{display:block;font-family:var(--display);font-size:19px;color:var(--price)}
+.pr s{font-size:12px;color:var(--muted)}
+.pr .na{font-size:12px;color:var(--warn);font-weight:600}
+.det{display:none;padding:0 14px 14px;border-top:1px dashed var(--line)}
+.card[data-open="true"] .det{display:block}
+.det h3{font-size:12.5px;color:var(--muted);margin:14px 0 6px;font-weight:600;letter-spacing:.2px}
+.money{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.money div{background:var(--bg);border-radius:10px;padding:8px;text-align:center;font-variant-numeric:tabular-nums}
+.money small{display:block;font-size:11px;color:var(--muted)}
+.money strong{font-size:15px}
+ul.items{margin:0;padding:0 18px 0 0;columns:2;column-gap:18px;font-size:13.5px}
+ul.items li{break-inside:avoid;margin-bottom:2px}
+.grp{font-weight:700;font-size:12.5px;color:var(--accent);margin-top:6px;list-style:none;margin-right:-18px}
+ul.plain{margin:0;padding:0 18px 0 0;font-size:13.5px}
+details.call{background:var(--bg);border-radius:10px;padding:8px 12px;margin-bottom:6px;font-size:14px}
+details.call summary{cursor:pointer;font-weight:600;color:var(--accent)}
+details.call p{margin:8px 0 2px;line-height:1.7}
+.pts li{margin-bottom:3px}
+.disc{background:var(--surface);border:1px solid var(--line);border-inline-start:4px solid var(--warn);border-radius:10px;padding:8px 12px;font-size:12.5px;color:var(--muted)}
+.topbar{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.panel h2{font-family:var(--display);font-size:16px;margin:0 0 10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid2 label,.send label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+.panel input,.send input,.send select{font:inherit;font-size:15px;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);min-width:0}
+.hint{font-size:12px;color:var(--muted);margin:8px 0}
+.send{background:var(--bg);border-radius:12px;padding:12px;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.send .chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:13px}
+.send .chk input{width:18px;height:18px;accent-color:var(--accent)}
+.wa{display:inline-flex;justify-content:center;align-items:center;gap:6px;background:#1f9d55;color:#fff;text-decoration:none;font-weight:700;border-radius:10px;padding:11px 14px}
+a.wa[aria-disabled="true"]{opacity:.45}
+.fu{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;border-top:1px dashed var(--line);padding:10px 0;font-size:13.5px}
+.fu:first-child{border-top:none}
+.fu .due{font-size:12px;font-weight:700}
+.fu .due.late{color:var(--price)} .fu .due.ok{color:var(--muted)}
+.fu .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.fu a.wa{padding:7px 10px;font-size:13px}
+.badge{background:var(--price);color:#fff;border-radius:999px;padding:0 7px;font-size:11px;margin-inline-start:4px}
+@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+button.wa{border:none;width:100%;font:inherit;font-weight:700;cursor:pointer}
+.sendbtns{display:flex;flex-direction:column;gap:8px}
+.qrmodal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.qrmodal[hidden]{display:none}
+.qrbox{background:#fff;color:#10302f;border-radius:16px;padding:18px;max-width:360px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.qrbox h2{font-family:var(--display);font-size:17px;margin:0}
+#qrImg svg{width:260px;height:260px}
+.handoff{background:var(--accent);color:#fff;border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:10px}
+.say{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:8px 12px;font-size:12.5px;margin-top:8px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);margin-top:10px;font-variant-numeric:tabular-nums}
+.meta code{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--ink);font-size:12.5px}
+.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.how{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:22px}
+.how h2{font-family:var(--display);font-size:16px;margin:0 0 10px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;counter-reset:s}
+.steps div{background:var(--bg);border-radius:10px;padding:8px;font-size:12.5px;text-align:center}
+.steps div::before{counter-increment:s;content:counter(s);display:block;font-family:var(--display);font-weight:700;color:var(--accent);font-size:18px}
+.foot{font-size:12px;color:var(--muted);margin-top:18px}
+.empty{padding:28px;text-align:center;color:var(--muted);background:var(--surface);border-radius:14px;border:1px dashed var(--line)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:420px){ul.items{columns:1}.steps{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== Nahdi look ===== */
+.brand{background:linear-gradient(135deg,#003b48 0%,#00566a 100%);color:#fff;margin:0 -16px;padding:14px 16px 0;position:relative}
+.brand .top{display:flex;align-items:center;gap:14px}
+.brand img{height:78px;width:auto;flex:none}
+.brand h1{color:#fff;font-size:21px;line-height:1.3}
+.brand h1 span{display:block;font-size:12.5px;font-weight:500;color:#bfe3ee;font-family:var(--body);margin-top:2px}
+.brand .sub{color:#d6ecf2;margin-top:10px}
+.brand .topbar{padding-bottom:14px}
+.brand .btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35);color:#fff}
+.brand .btn:hover{background:rgba(255,255,255,.22)}
+.mosaic{display:flex;height:7px;margin:0 -16px}
+.mosaic i{flex:1}
+.mosaic i:nth-child(7n+1){background:var(--n-red)}.mosaic i:nth-child(7n+2){background:var(--n-orange)}.mosaic i:nth-child(7n+3){background:var(--n-lime)}
+.mosaic i:nth-child(7n+4){background:var(--n-green)}.mosaic i:nth-child(7n+5){background:var(--n-sky)}.mosaic i:nth-child(7n+6){background:var(--n-blue)}.mosaic i:nth-child(7n+7){background:var(--n-purple)}
+header{padding:0}
+.wrap{padding-top:0}
+.sticky{background:var(--bg)}
+.seg{border-width:2px;border-color:color-mix(in srgb,var(--sc) 35%,#fff);background:color-mix(in srgb,var(--sc) 8%,#fff);transition:transform .12s}
+.seg:hover{transform:translateY(-1px)}
+.seg .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--sc);font-size:18px;margin-bottom:3px;box-shadow:0 2px 6px color-mix(in srgb,var(--sc) 40%,transparent)}
+.seg b{color:var(--ink)}
+.seg[aria-selected="true"]{background:var(--sc);border-color:var(--sc);color:#fff;box-shadow:0 4px 14px color-mix(in srgb,var(--sc) 35%,transparent)}
+.seg[aria-selected="true"] b{color:#fff}
+.seg[aria-selected="true"] .ic{background:#fff}
+.search input{border-color:#cfe0e6}
+.search input:focus{border-color:var(--n-sky);box-shadow:0 0 0 3px color-mix(in srgb,var(--n-sky) 20%,transparent)}
+.chip[aria-pressed="true"]{background:var(--n-green);border-color:var(--n-green)}
+.card{border-inline-start:5px solid var(--sc);box-shadow:0 1px 2px rgba(0,59,72,.06)}
+.card[data-open="true"]{border-color:var(--sc);box-shadow:0 6px 18px rgba(0,59,72,.10)}
+.tag{background:color-mix(in srgb,var(--sc) 12%,#fff);color:color-mix(in srgb,var(--sc) 70%,#003b48)}
+.subh{color:var(--sc);display:flex;align-items:center;gap:6px}
+.subh::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--sc)}
+.sech{color:var(--ink)}
+.btn.primary{background:var(--n-blue);border-color:var(--n-blue);color:#fff}
+.money div{background:color-mix(in srgb,var(--sc) 7%,#fff)}
+.money div:last-child{background:var(--sc);color:#fff}.money div:last-child small{color:#fff}
+.disc{border-inline-start-color:var(--n-orange)}
+.foot{margin-top:28px;text-align:center;font-size:11.5px;color:var(--muted)}
+@media (max-width:420px){.brand img{height:58px}.brand h1{font-size:18px}}
+
+/* ---- Well Assist AI ---- */
+.search{flex-wrap:wrap}
+.aibtn{flex-basis:100%;background:linear-gradient(135deg,var(--n-purple),var(--n-blue));border-color:transparent;color:#fff;white-space:nowrap}
+.aipanel{margin-top:10px;background:var(--surface);border:1.5px solid var(--n-purple);border-radius:14px;padding:12px}
+.aipanel textarea{width:100%;min-height:84px;font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical;box-sizing:border-box}
+.aipanel textarea:focus{outline:none;border-color:var(--n-purple)}
+.aipanel .row2{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.aipanel .hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.aistat{font-size:13px;color:var(--muted);flex:1;min-width:120px}
+.aistat.err{color:var(--n-red)}
+.aires{border:1.5px solid var(--n-purple);border-radius:14px;padding:10px;margin-bottom:12px;background:rgba(130,44,141,.05)}
+.aires h2{font-size:15px;margin:0 0 4px;color:var(--n-purple)}
+.aires .aid{font-size:12px;color:var(--muted);margin:0 0 8px}
+.aiwhy{font-size:13.5px;margin:10px 0 4px;padding:6px 10px;border-inline-start:3px solid var(--n-purple);background:var(--surface);border-radius:6px}
+.aiask{font-size:13.5px;margin:10px 0 0;padding:8px 10px;background:var(--surface);border-radius:8px;border:1px dashed var(--n-purple)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand">
+    <div class="top">
+      <img src="data:image/webp;base64,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" alt="النهدي – Nahdi">
+      <h1>دليل باقات Wellness Card<span>Lab · POC Lab · Derma · Dental</span></h1>
+    </div>
+    <div class="sub">ابحث باحتياج الضيف أو اسم الدواء أو التحليل، وافتح الباقة لتشوف المحتوى والسعر قبل وبعد الضريبة وطريقة العرض.</div>
+    <div class="topbar">
+      <button class="btn" type="button" data-panel="fu" id="fuBtn">📋 متابعات الضيوف</button>
+      <button class="btn" type="button" data-panel="me">⚙️ بياناتي</button>
+    </div>
+  </header>
+  <div class="mosaic" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <section class="panel" id="panel-me" hidden>
+    <h2>بياناتك اللي بتظهر للضيف</h2>
+    <div class="grid2">
+      <label>اسمك<input id="meName" type="text" placeholder="د. أيمن"></label>
+      <label>جوالك<input id="meMobile" type="tel" inputmode="tel" placeholder="05xxxxxxxx"></label>
+      <label>الصيدلية / الفرع<input id="meStore" type="text" placeholder="صيدلية النهدي – مجزية"></label>
+      <label>يوم الراتب في الشهر<input id="mePay" type="number" min="1" max="31" value="27"></label>
+    </div>
+    <p class="hint">بتتحفظ على الجهاز ده بس. يوم الراتب الافتراضي 27 (رواتب الحكومة)، وتقدر تغيّره.</p>
+    <button class="btn primary" type="button" id="meSave">حفظ</button>
+  </section>
+  <section class="panel" id="panel-fu" hidden>
+    <h2>متابعات الضيوف</h2>
+    <div id="fuList"></div>
+    <p class="hint">القايمة محفوظة على الجهاز ده بس، والتطبيق مش بيبعت تنبيهات. اضغط «📅 للتقويم» عشان التذكير يوصلك على موبايلك. القايمة بتتمسح تلقائيًا بعد 30 يوم من موعد المتابعة. ما تسجلش ضيف إلا بموافقته، وما تستخدمش القايمة دي على جهاز مشترك زي الـ POS.</p>
+  </section>
+
+  <div class="sticky">
+    <div class="segs" id="tabs" role="tablist" aria-label="الأقسام"></div>
+    <div class="search">
+      <input id="q" type="search" placeholder="ابحث في كل الأقسام: مونجارو، تساقط، حامل، تبييض…" autocomplete="off" aria-label="بحث">
+      <button class="btn" id="clear" type="button">مسح</button>
+      <button class="btn aibtn" id="aiOpen" type="button" aria-expanded="false">🤖 مساعد AI</button>
+    </div>
+    <div class="chips" id="needs" role="group" aria-label="احتياج الضيف"></div>
+    <div class="vat"><input type="checkbox" id="vatIncl" hidden> الأسعار من Health plug CRM (قبل الضريبة)، والسعر النهائي محسوب بضريبة 15%. آخر تحديث: <b>13 نوفمبر 2026</b></div>
+  </div>
+
+    <div class="aipanel" id="aiPanel" hidden>
+    <label for="aiNeed" style="font-weight:700;font-size:14px">اكتب حالة الضيف بكلامك (من غير اسم أو رقم جوال)</label>
+    <textarea id="aiNeed" maxlength="400" placeholder="مثال: رجل عمره 45 سنة عنده ضغط وسكر وعايز يطمن على صحته" autocomplete="off"></textarea>
+    <div class="row2">
+      <button class="btn primary" id="aiGo" type="button">رشّح الباقة</button>
+      <button class="btn" id="aiClose" type="button">إغلاق</button>
+      <span class="aistat" id="aiStat" role="status" aria-live="polite"></span>
+    </div>
+    <p class="hint">الـ AI بيرشّح من باقات الدليل بس. الأسعار والمحتوى بتطلع من الدليل نفسه، مش من الـ AI. القرار للطبيب والصيدلي. لا تكتب اسم الضيف أو رقمه.</p>
+  </div>
+  <div class="disc" style="margin-top:12px">القرار الطبي للطبيب وحده. دورنا نرشّح الضيف للتقييم، ومن غير مبالغة في الوعود بالنتائج. السعر النهائي هو اللي على نظام البيع.</div>
+  <div class="count" id="count"></div>
+  <div class="list" id="list"></div>
+
+  <section class="how" aria-labelledby="howT">
+    <h2 id="howT">تفعيل البطاقة والحجز</h2>
+    <div class="steps">
+      <div>الضيف يشتري البطاقة من الصيدلية أو أونلاين</div>
+      <div>يحجز موعده من تطبيق عيادات النهدي كير</div>
+      <div>يستلم النتائج مع خطة العلاج</div>
+      <div>يطلب الوصفة أو يستلمها</div>
+    </div>
+    <ul class="plain" style="margin-top:12px">
+      <li>حجز تحاليل Mix &amp; Match: بوابة CRM من أيقونة Health plug ← Patient service request ← Health services. طبّق كود <b>MIX 20</b> قبل إرسال رابط الدفع.</li>
+      <li>الدفع بالتقسيط متاح مع تمارا (ظاهر على المنشورات).</li>
+      <li>خدمة العملاء: <b dir="ltr">9200 24673</b></li>
+    </ul>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+<div class="qrmodal" id="qrModal" hidden role="dialog" aria-modal="true" aria-labelledby="qrT">
+  <div class="qrbox">
+    <h2 id="qrT">امسح بكاميرا موبايلك</h2>
+    <div id="qrImg"></div>
+    <p class="hint" id="qrInfo"></p>
+    <button class="btn primary" type="button" id="qrClose">تم</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+<script>
+const VAT = 0.15;
+const SRC = {
+  ncc:"WELLNESS CARD NCC 4.pdf",
+  ar24:"Wellness Cards Arabic.pdf (2024 Strategy)",
+  nwc:"New Wellness Card Packages.pdf",
+  smk:"Smoking Cessation Package.pdf",
+  exm:"Executive Mans Health Test Package.pdf",
+  exw:"Executive Womens Health Test Package.pdf",
+  den:"Nahdiwell Dental flyer",
+  der:"Nahdiwell Derma flyer",
+  tuw:"—",
+  pb:"Final premium beauty packages.pdf",
+  sig:"SIG..NW.pdf",
+  pbk:"—"
+};
+const LAB_PERKS = "حسب ملف 2024: سحب العينة من البيت مجانًا، استشارة طبية مجانية لشرح النتائج وكتابة الوصفة، وتوصيل الوصفة مجانًا.";
+const CHECK24 = "مزايا (زيارة منزلية / استشارة / توصيل) مصدرها ملف استراتيجية 2024. اتأكد إنها لسه سارية قبل ما توعد الضيف.";
+
+const EXEC_GROUPS = (gender) => [
+  ["الصحة العامة وفقر الدم",["Ferritin","Vitamin D","Zinc","Iron","ESR","CBC","Folic Acid","Vitamin B12","TIBC"]],
+  ["القلب والأوعية الدموية",["Total Cholesterol","HDL","LDL","Lipoprotein A","Apolipoprotein A","Apolipoprotein B","Triglycerides","CRP","LDH","PT","PTT","INR"]],
+  ["الأيض والسكري",["HbA1c","Random Blood Glucose","HOMA-IR"]],
+  ["المعادن",["Calcium","Ionized Calcium","Magnesium","Phosphorus","Potassium","Sodium","Chloride"]],
+  gender==="m" ? ["صحة الرجل",["Total Testosterone","Total PSA","Free PSA"]]
+               : ["صحة المرأة",["Total Testosterone","Prolactin","FSH","LH","Estradiol"]],
+  ["وظائف الكلى والكبد",["BUN","Creatinine","eGFR","BUN/Creatinine Ratio","Alkaline Phosphatase","GGT","AST","ALT","CK Total","Total Bilirubin","Direct Bilirubin","Albumin","Microalbumin","Total Protein","Uric Acid","Urine Analysis"]],
+  ["المناعة والالتهابات",["Rheumatoid Factor (quantitative)","IgE Total"]],
+  ["الغدة الدرقية",["Free T3","Free T4","TSH","PTH"]]
+];
+
+const P = [{"id":"basic","cat":"lab","ar":"باقة التحاليل الأساسية (Basic)","en":"Basic Lab Package","price":222,"items":["HbA1c السكر التراكمي","Serum Creatinine","Uric Acid","Total Cholesterol","ALT / AST","CBC"],"for":["نفس ضيوف باقة 40+، بس الميزانية أقل","فحص عام سريع"],"needs":["checkup","chronic"],"say":"«عندنا 3 مستويات: الأساسية بـ222، والأمراض المزمنة بـ333، وباقة 40+ بـ499. اختار اللي يناسب احتياجك وميزانيتك.»","pts":[],"open":[],"notes":["ملف NCC الأقدم كان فيه الباقة الأساسية بـ199 بمحتوى مختلف شوية."],"src":["ncc","crm"],"kw":"اساسي basic 222 فحص","crmName":"Wellness Cards Basic Package 10 Test","sub":"lab-check"},{"id":"chronic","cat":"lab","ar":"باقة الأمراض المزمنة (Chronic)","en":"Chronic Diseases Lab Package","price":333,"items":["HbA1c + Random Blood Glucose","Creatinine, Uric Acid, BUN, Calcium","Total Cholesterol + LDL, HDL, VLDL, TGs","ALT","CBC + Ferritin","TSH","ESR, CRP","Vitamin D + Calcium"],"for":["مرضى السكر والضغط والدهون","ضيف على أدوية مزمنة"],"needs":["chronic","checkup"],"say":"«باقة المزمن بـ333 فيها السكر والدهون الكاملة والكلى والغدة وفيتامين د.»","pts":[],"open":[],"notes":[],"src":["ncc","crm"],"kw":"مزمن chronic 333 ضغط سكر دهون","crmName":"Wellness Cards Advanced Package 20 Tests (تحكم)","sub":"lab-check"},{"id":"age40","cat":"lab","ar":"باقة تحاليل 40+","en":"Age 40+ Health Lab Tests","price":499,"items":["Lipid Profile: TC, TGs, LDL, HDL, VLDL","Bone: Ca, Mg, Vitamin D","Diabetes: Random BG, HbA1c","Kidney: Creatinine, BUN, Uric Acid","Electrolytes: Na, K, Cl, Ca, Mg","Liver: ALT, AST","Thyroid: TSH, T3, T4","Inflammatory: ESR, CRP","Blood: CBC, Iron, Ferritin, Vitamin B12","Urine Analysis"],"for":["السمنة","اضطرابات الغدة الدرقية","السكري","أمراض القلب (ضغط، دهون)","فحص عام، خصوصًا فوق 40"],"needs":["chronic","checkup","parents"],"say":"«باقة 40+ بـ499 فيها الدهون والسكر والكلى والكبد والغدة والعظام والدم، وتعملها من البيت.»","pts":[],"open":[],"notes":["ملف NCC الأقدم (تطمّن 40 تحليل) كان بنفس السعر 499."],"src":["ncc","crm"],"kw":"40 تطمن شامل سكر ضغط ستاتين ميتفورمين CGM شرايط سيولة","crmName":"Wellness Card Premium Package 40 Tests (تطمن)","sub":"lab-check"},{"id":"minvit","cat":"lab","ar":"باقة الفيتامينات والمعادن","en":"Vitamins & Minerals Package","price":299,"items":["Sodium","Potassium","Calcium","Iron","Magnesium","Vitamin D","Vitamin B12","Uric Acid"],"for":["مرضى السكر (لفحص المغنيسيوم وفيتامين د)","مستخدمي الستاتين أو مدرات البول أو ACEIs أو ARBs أو أدوية النقرس","أعراض نقص: تعب، تقلصات عضلات، ضعف، قلة نوم، شحوب"],"needs":["vitamins","chronic"],"say":"«الفيتامينات والمعادن في باقة واحدة، وتعملها من البيت.»","pts":[],"open":[],"notes":[],"src":["ncc","crm"],"kw":"فيتامينات معادن مغنيسيوم زنك b12 ميتفورمين تقلصات تعب","sub":"lab-vit"},{"id":"minerals","cat":"lab","ar":"كير بلس المعادن الأساسية","en":"Care Plus Basic Minerals Package","price":149,"items":["Calcium","Uric Acid","Sodium","Potassium","Iron","Chloride","Magnesium"],"for":["تقلصات أو إرهاق","ضيف بيشتري مكملات معادن"],"needs":["vitamins"],"say":"«قبل ما تاخد مكملات، اطمن على المعادن: 7 تحاليل بـ109.»","pts":[],"open":[],"notes":["السعر اتحدّث من الـ CRM (كان 109)."],"src":["ncc","crm"],"kw":"معادن مغنيسيوم كالسيوم","crmName":"Wellness Card Basic Minerals Package","sub":"lab-vit"},{"id":"vitd","cat":"lab","ar":"باقة فيتامين د","en":"Vitamin D Package","price":169,"items":["Vitamin D"],"for":["أعراض نقص: تقلب مزاج، ضعف وتقلصات عضلات، تعب","بيطلب مكمل فيتامين د","أدوية: كورتيزون أو PPI لفترة طويلة، ميتفورمين، مدرات، فوساماكس، أورليستات","السمنة (بعد InBody)"],"needs":["bones","vitamins","weight"],"say":"«الجرعة اليومية مش بتعالج النقص لو موجود. نعمل التحليل الأول ونحدد الجرعة.»","pts":[],"open":[],"notes":[],"src":["ar24","crm"],"kw":"فيتامين د عظام فوساماكس كورتيزون اورليستات زينيكال تقلصات","sub":"lab-vit"},{"id":"slim","cat":"lab","ar":"تحاليل ما قبل التخسيس (Pre-Slimming)","en":"Pre-Slimming Tests (Care Plus Slimming Injection)","price":299,"items":["TSH","Vitamin D","HbA1c","CBC, Iron, Ferritin","Serum Creatinine","ALT, AST","استشارة طبيب مجانية بعد النتائج"],"for":["مريض سكر بيستخدم الدواء لأول مرة","وزن زائد أو سمنة: BMI أكبر من 30، أو أكبر من 27 مع أمراض مصاحبة (استخدم InBody)","بيطلب مكملات تخسيس أو بيسأل عن GLP-1RA (Wegovy و Saxenda معتمدين من FDA للتخسيس)"],"needs":["weight"],"say":"«الإبر محتاجة وصفة وتحاليل قبلها عشان تكون مطمن. الباقة فيها التحاليل اللازمة، واستشارة مجانية مع طبيب مختص بعد النتائج.»","pts":[],"open":[],"notes":[],"src":["ncc","crm"],"kw":"مونجارو اوزمبيك ويجوفي ساكسندا ابر تخسيس glp inbody انبودي سمنة","sub":"lab-wt"},{"id":"wloss","cat":"lab","ar":"كير بلس التحكم بالوزن","en":"Care Plus Weight Loss Package","price":249,"items":["CBC","HbA1c","Total Cholesterol","Triglycerides","TSH","ALT"],"for":["بيبدأ رجيم"],"needs":["weight"],"say":"«6 تحاليل قبل الرجيم بـ249.»","pts":[],"open":[],"notes":[],"src":["ncc","crm"],"kw":"رجيم وزن","sub":"lab-wt"},{"id":"hair","cat":"lab","ar":"العناية بالشعر والبشرة والأظافر","en":"Hair, Skin & Nail Care","price":349,"items":["TSH","Zinc","CBC, Iron, Ferritin","Vitamin D (موجود في ملف NCC)"],"for":["مستخدمي علاجات التساقط: موضعي أو مكملات","مستخدمي علاجات حب الشباب بشكل متكرر، خصوصًا الشديد والمقاوم والملتهب"],"needs":["hair","acne","women"],"say":"«التساقط ليه أسباب من جوه زي الحديد والزنك وفيتامين د والغدة. نفحصهم مع بداية العلاج عشان النتيجة تبقى أسرع.»","pts":[],"open":[],"notes":[],"src":["ncc","crm"],"kw":"تساقط شعر زنك حديد امبولات اظافر حب شباب","sub":"lab-spec"},{"id":"acne","cat":"lab","ar":"باقة علاج حب الشباب (إيزوتريتينوين)","en":"Acne Treatment Package","price":299,"items":["ALT, AST, GGT","CBC","Total Cholesterol, Triglycerides","استشارة مجانية مع طبيب جلدية (له صلاحية صرف الإيزوتريتينوين)"],"for":["بداية علاج: حب شباب شديد وملتهب ومحتاج إيزوتريتينوين","مستخدم حالي بيطلب مرطب للجفاف الشديد (اسأله عن مدة العلاج وآخر رفع للجرعة)","بيكرر صرف الإيزوتريتينوين"],"needs":["acne","skin"],"say":"«الباقة فيها تحاليل الكبد والدهون المطلوبة قبل وأثناء العلاج، واستشارة مجانية مع طبيب جلدية، والعلاج بيوصل البيت من غير رسوم توصيل.»","pts":[],"open":[],"notes":[],"src":["ncc","crm"],"kw":"رواكيوتان isotretinoin حب الشباب acne صفاء مرطب جفاف","sub":"lab-spec"},{"id":"men","cat":"lab","ar":"باقة صحة الرجل","en":"Men's Health","price":599,"items":["TSH","PSA","Testosterone, Prolactin","CBC, Ferritin","HbA1c, Random BG","Total Cholesterol","Creatinine, BUN, Uric Acid","ALT, AST","Vitamin D"],"for":["ضعف انتصاب: سياليس، Helt، L-Arginine","مكملات الرغبة: Maca، Tongkat Ali","أدوية البروستاتا: Cardura، Omnic، Avodart","أدوية: Spironolactone، Cipralex","مكملات رياضية: Protein، Creatine، BCAA","مكملات خصوبة: Arnitin، Fertoxeed"],"needs":["men"],"say":"«الباقة فيها التستوستيرون والبروستاتا والغدة والسكر والكلى والكبد، والاستشارة مع الطبيب مجانية.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"رجال تستوستيرون بروستاتا psa سياليس فياجرا سنافي ماكا كرياتين بروتين خصوبة","sub":"lab-mwc"},{"id":"women","cat":"lab","ar":"باقة صحة المرأة","en":"Women's Health","price":399,"items":["Vitamin D, Calcium","TSH","Prolactin","CBC, Ferritin","HbA1c","Total Cholesterol","Creatinine, Uric Acid","ALT, AST"],"for":["أدوية تكيس المبايض: ميتفورمين، كلوميد","مكملات حديد: Feroglobin، Ferose","مكملات انقطاع الطمث: Soy، Black Cohosh، Evening Primrose","مكملات خصوبة: Prox-Fem، Inositol","علاج أو مكمل التهاب بول: Cranberry، Alka-Ur","فحص عام"],"needs":["women"],"say":"«باقة صحة المرأة بتطمنك على الهرمونات والغدة والحديد وفيتامين د، والاستشارة مع الطبيب مجانية.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"نساء تكيس pcos انقطاع طمث هبات حديد فيروجلوبين كلوميد التهاب بول خصوبة","sub":"lab-mwc"},{"id":"child","cat":"lab","ar":"باقة صحة الطفل","en":"Child's Health","price":399,"items":["ALT, AST","CBC, Ferritin, Iron","Ca, Mg, Vitamin D, Phosphorus","TSH","Random Blood Glucose","Serum Creatinine"],"for":["أهل بيطلبوا مكملات نمو وفيتامينات (Argivit)","مكملات عظام: كالسيوم وفيتامين د","مكملات حديد","سكر نوع أول: إنسولين وأجهزة وإبر"],"needs":["kids"],"say":"«باقة صحة الطفل بتطمنك على الحديد والعظام والغدة، والطبيب بيصرف المكمل الأنسب حسب النتيجة.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"اطفال طفل نمو ارجيفيت حديد انسولين سكر نوع اول","sub":"lab-mwc"},{"id":"nipt","cat":"lab","ar":"تحليل NIPT للحامل","en":"NIPT – Non-Invasive Prenatal Testing","price":1099,"items":["عينة دم من الأم بعد الأسبوع العاشر","بيكشف خطر متلازمة داون (دقة حوالي 99%) وإدواردز وباتو","بيحدد نوع الجنين","النتيجة بعد 7 أيام"],"for":["أي حامل بتشتري: أدوات استحمام أو رضاعة للبيبي، هدوم بيبي، روشتة حمل، مكملات حمل"],"needs":["preg"],"say":"«تحليل دم بعد الأسبوع العاشر يطمنك على الجنين، والنتيجة بعد 7 أيام، وتعرفي نوع المولود بدري.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"nipt حامل جنين داون نوع المولود فوليك","sub":"lab-preg"},{"id":"rast","cat":"lab","ar":"حساسية الطعام (RAST)","en":"Food Sensitivity","price":499,"items":["IgE نوعي لحوالي 35 نوع ومجموعة أكل","البقوليات والمكسرات، الخضار والفواكه، القمح والرز والذرة، الحليب والبيض، اللحوم والأسماك والقشريات","النتيجة بعد 5 أيام"],"for":["ضيف حصله تورم أو أرتيكاريا بعد الأكل في خلال ساعتين ومش عارف السبب","مريض ربو بيتعب فجأة بعد أكلات معينة","إكزيما شديدة مش بتتحسن بالكريمات"],"needs":["kids","skin"],"say":"«التحليل بيوضحلك الأكلات اللي احتمال تحسسك منها عالي فتتجنبها.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"حساسية اكل طعام اكزيما ربو ارتيكاريا rast","crmName":"Food Sensitivity","sub":"lab-spec"},{"id":"heart","cat":"spec","ar":"العناية المتكاملة بالقلب","en":"Advanced Heart Wellness Package","price":699,"items":["استشارة أخصائي قلب","Lipid Profile","Lipoprotein A","Apolipoprotein A و B","Renal Function","CK-MB","Troponin T","ECG","Echo"],"follow":"بعد 3 شهور: استشارة قلب + Lipid Profile + وظائف كلى","for":["على أدوية دهون أو ضغط","تاريخ عائلي لأمراض القلب"],"needs":["heart","chronic"],"say":"«تخطيط وإيكو وتحاليل دهون متقدمة، واستشارة أخصائي قلب ومتابعة بعد 3 شهور.»","pts":[],"open":[],"notes":[],"src":["nwc","crm"],"kw":"قلب ستاتين ايكو ecg","sub":"lab-spec"},{"id":"preg1","cat":"spec","ar":"متابعة الحمل – الثلث الأول","en":"Pregnancy Package (1st trimester)","price":1499,"items":["استشارة نساء وولادة","CBC","Blood Group & Rh","Random BG","HbA1c","Vitamin D","B12","Calcium","Ferritin","TSH","Free T3, T4","NIPT","HBsAg","HCV Ab","سونار شهري","استشارات متابعة"],"for":["حامل في الشهور الأولى"],"needs":["preg"],"say":"«سونار شهري وتحاليل أساسية و NIPT واستشارة نساء وولادة.»","pts":[],"open":[],"notes":[],"src":["nwc","crm"],"kw":"حامل حمل","sub":"lab-preg"},{"id":"preg2","cat":"spec","ar":"متابعة الحمل – الثلث الثاني","en":"Pregnancy Package (2nd trimester)","price":399,"items":["استشارة نساء وولادة","CBC","Iron","Ferritin","Random BG","Urine","OGTT","سونار شهري","استشارات متابعة"],"for":["حامل في الشهور 4–6"],"needs":["preg"],"say":"«متابعة سكر الحمل والحديد مع سونار شهري.»","pts":[],"open":[],"notes":[],"src":["nwc","crm"],"kw":"حامل سكر الحمل","sub":"lab-preg"},{"id":"preg3","cat":"spec","ar":"متابعة الحمل – الثلث الثالث","en":"Pregnancy Package (3rd trimester)","price":399,"items":["استشارة نساء وولادة","CBC","Iron","Ferritin","Random BG","Urine","ALT, AST","Creatinine","OGTT","ECG","سونار شهري","استشارات متابعة"],"for":["حامل في الشهور 7–9"],"needs":["preg"],"say":"«كبد وكلى وتخطيط قلب وسونار شهري.»","pts":[],"open":[],"notes":[],"src":["nwc","crm"],"kw":"حامل ولادة","sub":"lab-preg"},{"id":"uro","cat":"spec","ar":"صحة المسالك البولية للرجل","en":"Advanced Urology Screening","price":399,"items":["استشارة مسالك","Renal Function","Total Testosterone","Free PSA","Total PSA","Prolactin","Urine","سونار بطن وحوض"],"follow":"بعد 3 شهور: استشارة مسالك","for":["أدوية البروستاتا: Cardura، Omnic، Avodart"],"needs":["men"],"say":"«PSA وسونار واستشارة مسالك، ومتابعة بعد 3 شهور.»","pts":[],"open":[],"notes":[],"src":["nwc","crm"],"kw":"بروستاتا psa مسالك","sub":"lab-mwc"},{"id":"horm","cat":"spec","ar":"صحة الهرمونات الشاملة للمرأة","en":"Women's Hormonal Health","price":399,"items":["استشارة نساء وولادة","FSH","LH","Estradiol","Total Testosterone","Prolactin","HbA1c","HOMA-IR","TSH","Free T3, T4","سونار بطن وحوض"],"follow":"بعد 6 شهور: استشارة متابعة","for":["تكيس مبايض","اضطراب الدورة","خصوبة"],"needs":["women"],"say":"«الهرمونات ومقاومة الإنسولين والغدة مع سونار واستشارة.»","pts":[],"open":[],"notes":[],"src":["nwc","crm"],"kw":"هرمونات تكيس pcos","sub":"lab-mwc"},{"id":"smoke","cat":"spec","ar":"الإقلاع عن التدخين","en":"Smoking Cessation Package","price":399,"items":["CBC","Chest X-Ray","Spirometry","استشارة مجانية مع أخصائي"],"for":["بيشتري بدائل نيكوتين"],"needs":["smoke"],"say":"«الباقة بتقيس كفاءة الرئة، وفيها أشعة صدر واستشارة مع أخصائي.»","pts":[],"open":[],"notes":[],"src":["smk","crm"],"kw":"تدخين نيكوتين","sub":"lab-spec"},{"id":"execm","cat":"spec","ar":"الباقة الماسية للتنفيذيين – رجال","en":"Diamond Executive Lab Package (Male)","price":1199,"groups":[["الصحة العامة وفقر الدم",["Ferritin","Vitamin D","Zinc","Iron","ESR","CBC","Folic Acid","Vitamin B12","TIBC"]],["القلب والأوعية الدموية",["Total Cholesterol","HDL","LDL","Lipoprotein A","Apolipoprotein A","Apolipoprotein B","Triglycerides","CRP","LDH","PT","PTT","INR"]],["الأيض والسكري",["HbA1c","Random Blood Glucose","HOMA-IR"]],["المعادن",["Calcium","Ionized Calcium","Magnesium","Phosphorus","Potassium","Sodium","Chloride"]],["صحة الرجل",["Total Testosterone","Total PSA","Free PSA"]],["وظائف الكلى والكبد",["BUN","Creatinine","eGFR","BUN/Creatinine Ratio","Alkaline Phosphatase","GGT","AST","ALT","CK Total","Total Bilirubin","Direct Bilirubin","Albumin","Microalbumin","Total Protein","Uric Acid","Urine Analysis"]],["المناعة والالتهابات",["Rheumatoid Factor (quantitative)","IgE Total"]],["الغدة الدرقية",["Free T3","Free T4","TSH","PTH"]]],"for":["فحص شامل في البيت"],"needs":["checkup","men"],"say":"«أكتر من 56 تحليل في البيت، مع استشارة مجانية مع استشاري.»","pts":[],"open":[],"notes":[],"src":["exm","crm"],"kw":"تنفيذي شامل","crmName":"Diamond Executive Lab Package (Male)","sub":"lab-check"},{"id":"execw","cat":"spec","ar":"الباقة الماسية للتنفيذيين – سيدات","en":"Diamond Executive Lab Package (Female)","price":1199,"groups":[["الصحة العامة وفقر الدم",["Ferritin","Vitamin D","Zinc","Iron","ESR","CBC","Folic Acid","Vitamin B12","TIBC"]],["القلب والأوعية الدموية",["Total Cholesterol","HDL","LDL","Lipoprotein A","Apolipoprotein A","Apolipoprotein B","Triglycerides","CRP","LDH","PT","PTT","INR"]],["الأيض والسكري",["HbA1c","Random Blood Glucose","HOMA-IR"]],["المعادن",["Calcium","Ionized Calcium","Magnesium","Phosphorus","Potassium","Sodium","Chloride"]],["صحة المرأة",["Total Testosterone","Prolactin","FSH","LH","Estradiol"]],["وظائف الكلى والكبد",["BUN","Creatinine","eGFR","BUN/Creatinine Ratio","Alkaline Phosphatase","GGT","AST","ALT","CK Total","Total Bilirubin","Direct Bilirubin","Albumin","Microalbumin","Total Protein","Uric Acid","Urine Analysis"]],["المناعة والالتهابات",["Rheumatoid Factor (quantitative)","IgE Total"]],["الغدة الدرقية",["Free T3","Free T4","TSH","PTH"]]],"for":["فحص شامل في البيت"],"needs":["checkup","women"],"say":"«أكتر من 56 تحليل فيهم هرمونات المرأة، مع استشارة مجانية.»","pts":[],"open":[],"notes":[],"src":["exw","crm"],"kw":"تنفيذي شامل","crmName":"Diamond Executive Lab Package (Female)","sub":"lab-check"},{"id":"d-clean","cat":"dental","ar":"تنظيف الأسنان وإزالة الجير","en":"Dental scaling & polishing","price":149,"items":["إزالة الجير فوق وتحت اللثة","تلميع","حوالي 15 دقيقة"],"for":["معجون لثة أو فرشاة ناعمة، ومنهم مرضى السكر","معطر فم (رائحة الفم)","نكاشة أسنان","مدخنين أو بيطلبوا منتجات إقلاع","مسكن ألم أسنان"],"needs":["dental","smoke"],"say":"«الجير بيتكوّن حتى مع الغسيل، وبيُنصح بإزالته كل 6 شهور. الجلسة حوالي 15 دقيقة.»","pts":[],"open":[],"notes":[],"src":["den","crm"],"kw":"جير تنظيف لثة معطر فم نكاشة الم اسنان","sub":"dt-prev"},{"id":"d-fluor","cat":"dental","ar":"صحة أسنان الأطفال (فوق 6 سنوات) – فلورايد","en":"Kids (6 Years) Teeth Health","price":299,"items":["تنظيف جير قبلها","فلورايد بالفرشاة على الأسنان من قدام وورا","تجنب الفرشاة، وأكل سائل أو طري لمدة 4 ساعات"],"for":["منتجات التسوس","معجون الأسنان الحساسة","أهل بيشتروا معجون وفرشاة لأطفالهم","تقويم (يمنع البقع البيضا حوالين السلك)"],"needs":["dental","kids"],"say":"«جلسة فلورايد بسيطة، ومعاها إزالة الجير.»","pts":[],"open":[],"notes":[],"src":["den","crm"],"kw":"فلورايد حساسية اطفال تقويم تسوس","crmName":"Wellness Card Kids (6 Years) Teeth Health","sub":"dt-prev"},{"id":"d-bleach","cat":"dental","ar":"تبييض الأسنان بالليزر","en":"Teeth bleaching","price":499,"items":["تنظيف جير قبلها","جل H2O2 مع تنشيط بضوء LED","بيفتّح 2–3 درجات في نفس الجلسة","بيوصل لـ7 أسنان فوق و7 تحت"],"for":["معجون مبيّض أو شرائط (Orex, Crest)","أسنان صفرا من القهوة والشاي أو التدخين","عايز نتيجة سريعة لفرح أو مناسبة"],"needs":["dental","bride"],"say":"«نتيجة فورية بتفتّح 2–3 درجات، وتستمر من 4 لـ12 شهر.»","pts":[],"open":[],"notes":[],"src":["den","crm"],"kw":"تبييض اسنان شرائط crest صفار قهوة فرح","sub":"dt-cos"},{"id":"d-gum","cat":"dental","ar":"صحة وتوريد اللثة","en":"Gum depigmentation","price":999,"items":["ليزر من غير نزيف","حوالي 15 دقيقة"],"for":["مدخنين (النيكوتين بيزود الميلانين)","ابتسامة لثوية واللثة الغامقة باينة"],"needs":["dental","smoke"],"say":"«الليزر بيكسر صبغة الميلانين، من غير نزيف، في حوالي 15 دقيقة.»","pts":[],"open":[],"notes":[],"src":["den","crm"],"kw":"لثة تصبغات سوداء توريد","sub":"dt-cos"},{"id":"d-implant","cat":"dental","ar":"زراعة السن الواحد","en":"Implant – 1 tooth (Swiss)","price":2999,"items":["زراعة سن واحد"],"brand":"Swiss implant","for":["سن مفقود"],"needs":["dental"],"say":"«زرعة سويسرية للسن الواحد بـ2,999.»","pts":[],"open":[],"notes":[],"src":["den","crm"],"kw":"زراعة","sub":"dt-tx"},{"id":"d-ven","cat":"dental","ar":"ابتسامة هوليود (فينير)","en":"Veneer – Hollywood Smile","price":999,"items":["سن واحد: 999","فك علوي أو سفلي: 6,999","فكين 16 سن: 12,999","خامة Emax (بورسلين)","قياس بكاميرا سكان"],"brand":"Emax","for":["تصبغات مقاومة للتبييض","أسنان قصيرة أو متآكلة","فراغات بين الأسنان","أسنان مكسورة"],"needs":["dental","bride"],"say":"«تختار عدد الأسنان، والخامة Emax بتقاوم البقع وشكلها زي السنة الطبيعية.»","pts":[],"open":[],"notes":["السعر الظاهر في القايمة لسن واحد. باقي الأسعار مكتوبة في المحتوى (من منشور الأسنان)."],"src":["den","crm"],"kw":"فينير هوليود emax ابتسامة","sub":"dt-cos"},{"id":"d-invis","cat":"dental","ar":"التقويم الشفاف (إنفزلاين)","en":"Invisalign","price":17999,"items":["سكان رقمي 3D","خطة حركة لكل سن","Aligners مطبوعة 3D من خامة SmartTrack"],"brand":"Invisalign (SmartTrack)","for":["صعوبة تنظيف التقويم العادي","مش مرتاح للتقويم التقليدي","مراهقين عايزين ابتسامة واثقة"],"needs":["dental"],"say":"«شفاف وحوافه ناعمة فالتهابات أقل، ومريح في التنظيف والأكل.»","pts":[],"open":[],"notes":[],"src":["den","crm"],"kw":"انفزلاين تقويم شفاف invisalign","sub":"dt-cos"},{"id":"z-carbon","cat":"derma","ar":"ليزر كربوني","en":"Carbon laser","price":249,"items":["طبقة كربون 10–20 دقيقة","ليزر بيبخّر الكربون مع الجلد الميت والدهون"],"for":["بشرة دهنية: مسام واسعة، دهون زيادة، رؤوس سودا وبيضا","نضارة سريعة قبل مناسبة"],"needs":["skin","acne","bride"],"say":"«نضارة فورية من غير فترة نقاهة، وبيقلل الدهون ويضيّق المسام.»","pts":[],"open":[],"notes":[],"src":["der","crm"],"kw":"كربون رؤوس سوداء مسام دهنية تونر","sub":"dm-skin"},{"id":"z-hydra","cat":"derma","ar":"هيدرافيشل","en":"HydraFacial","price":399,"brand":"HydraFacial (Vortex-Fusion)","items":["تنظيف وتقشير","حمض ساليسيليك وجليكوليك مع شفط الرؤوس السودا","مضادات أكسدة وببتيدات وهيالورونيك"],"for":["بشرة باهتة وجافة","حب شباب برؤوس سودا وبيضا","خطوط رفيعة","مسام واسعة، خصوصًا الدهنية","بيشتري هيالورونيك أو فيتامين C"],"needs":["skin","acne"],"say":"«تنظيف عميق للمسام وترطيب في نفس الجلسة، من غير تهيّج ومن غير فترة نقاهة.»","pts":[],"open":[],"notes":[],"src":["der","crm"],"kw":"هيدرافيشل هيالورونيك مسام رؤوس سوداء","sub":"dm-skin"},{"id":"z-cold","cat":"derma","ar":"تقشير بارد","en":"Cold peel (Whitelan / Acne Zone)","price":599,"brand":"Whitelan أو Acne Zone","items":["ماسك تقشير 6–10 ساعات","التقشير بيكمل خلال أسبوع","كريمات منزلية يحددها الطبيب","واقي شمس SPF 50+"],"for":["تصبغات من الحبوب أو الالتهاب أو الشمس","كلف ونمش","الكوع والركبة"],"needs":["skin","acne"],"say":"«بيختصر الوقت مع التصبغات، وبعدها تكملي على الكريم عشان تحافظي على النتيجة.»","pts":[],"open":[],"notes":[],"src":["der","crm"],"kw":"تقشير بارد كلف تصبغات اثار حبوب نمش","sub":"dm-skin"},{"id":"z-botox","cat":"derma","ar":"بوتوكس (الجبهة / نفرتيتي / ميني)","en":"Botox","price":799,"items":["بوتوكس الجبهة: 799","نفرتيتي للرقبة وخط الفك: 899","ميني بوتوكس للابتسامة اللثوية: 293","Baby Botox: جرعات أقل والتعبير يفضل طبيعي"],"for":["بيطلب كريمات أو سيروم أو مكملات ضد الشيخوخة","تعرّق شديد وبيطلب مضاد تعرّق قوي"],"needs":["skin"],"say":"«نتيجة سريعة خلال أيام تستمر 3 شهور على الأقل، ولو كملتي على الكريم ممكن توصل لـ6.»","pts":[],"open":[],"notes":[],"src":["der","crm"],"kw":"بوتوكس تجاعيد خطوط رقبة تعرق نفرتيتي لثوية","sub":"dm-inj"},{"id":"z-laser","cat":"derma","ar":"ليزر إزالة شعر الجسم كامل – 4 جلسات","en":"Laser Hair Removal 4 sessions Full Body","price":1199,"brand":"GentleMax Pro","items":["4 جلسات مع رتوش خلال 14 يوم من كل جلسة","جلسة واحدة كامل الجسم: 349 (كارت منفصل)","تحديد اللحية: 249 (كارت منفصل)"],"for":["كريم إزالة شعر، واكس، شفرات، إبيليتور","تحضير للفرح","لحية: شفرات، التهاب بعد الحلاقة، شعر تحت الجلد، منتجات عناية باللحية"],"needs":["skin","men","bride"],"say":"«الليزر بيقلل نمو الشعر بشكل ملحوظ مع الوقت، فتقل الحاجة للشفرات والكريمات.»","pts":[],"open":[],"notes":["السعر اتحدّث من الـ CRM (كان 999)."],"src":["der","crm"],"kw":"ليزر ازالة شعر لحية دقن شفرات واكس gentlemax","sub":"dm-laser"},{"id":"z-minox","cat":"derma","ar":"باقة إنبات الشعر (مينوكسيديل)","en":"Hair Loss (Minoxidil)","price":1999,"items":["حقن في الطبقة الوسطى من فروة الراس","معاها Dutasteride لتحفيز أطول (حوالي 3 شهور)","جلسة كل شهر لمدة 3–4 جلسات، وبعدها صيانة كل 4 شهور","جزء من باقة تكثيف الشعر"],"for":["استجابة ضعيفة للمينوكسيديل الموضعي","تهيج من المستحضرات الموضعية"],"needs":["hair"],"say":"«الحقن بتوصل للبصيلة مباشرة، فتكون أسرع وأسهل من الموضعي لو الاستجابة بطيئة.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"مينوكسيديل افوجين تساقط حقن","crmName":"Wellness Card Hair Loss (Minoxidil)","sub":"dm-hair"},{"id":"z-booster","cat":"derma","ar":"باقة نضارة البشرة الفورية","en":"Radiance Booster Package","price":593,"items":["هيالورونيك كأساس","إضافات حسب الطبيب: ترانيكساميك، فيتامين C، جلوتاثيون","كل شهر لمدة 3 شهور، وبعدها كل 6 شهور","من سن 25"],"for":["منتجات ضد الشيخوخة للوجه والعين والرقبة والإيدين","نضارة قبل مناسبة","جفاف من الرواكيوتان","بيشتري منتجات هيالورونيك"],"needs":["skin","acne"],"say":"«ترطيب سريع من جوه، وبعدها الكريمات تحافظ على النتيجة.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"نضارة بوستر هيالورونيك تجاعيد رواكيوتان جفاف","crmName":"Wellness Card Radiance Booster Package","sub":"dm-skin"},{"id":"z-gold","cat":"derma","ar":"باقة إطلالة القمر (العناية الذهبية)","en":"Moon Look Package","price":3999,"items":["قناع الإكسوزوم الاحترافي","جلسة توريد الشفايف","إبرة السالمون (PDRN)","جلسة بوتوكس","2 مل فيلر"],"for":["بشرة جافة أو باهتة أو مرهقة","نضارة قبل مناسبة","علامات تقدم في السن مبكرة","حل متكامل للتجديد"],"needs":["skin"],"say":"«حل متكامل: سالمون وبوتوكس وفيلر وإكسوزوم.»","pts":[],"open":[],"notes":[],"src":["der","pb","crm"],"kw":"ذهبية سالمون pdrn اكسوزوم","crmName":"Wellness Card Moon Look Package","sub":"dm-prem"},{"id":"z-bride","cat":"derma","ar":"باقة العروس","en":"Bridal glow package","price":4999,"items":["قناع الإكسوزوم","إبرة نضارة ومحفزات كولاجين","بوتوكس الجبهة","1 مل فيلر","ليزر كربوني للوجه","ليزر إزالة الشعر 4 جلسات"],"for":["تحضير ليوم الفرح","حل تجميلي من غير جراحة","تجربة نضارة كاملة"],"needs":["skin","bride"],"say":"«كل اللي تحتاجيه قبل الفرح في باقة واحدة.»","pts":[],"open":[],"notes":["السعر قبل الخصم 7,644 في منشور نهدي ويل و7,699 في ملف الباقات المميزة."],"src":["der","pb","crm"],"kw":"عروس فرح زفاف","sub":"dm-prem"},{"id":"z-hair","cat":"derma","ar":"باقة شعر الملكة (تكثيف الشعر)","en":"Queen Hair Package","price":4499,"items":["إبر مينوكسيديل 4 جلسات","بلازما (PRP) 3 جلسات","إكسوزوم للشعر جلستين"],"for":["صلع وراثي مش بيستجيب للموضعي","بداية علاج تساقط وعايز نتيجة أسرع"],"needs":["hair"],"say":"«3 تقنيات مع بعض لنتيجة أسرع.»","pts":[],"open":[],"notes":[],"src":["der","pb","crm"],"kw":"تكثيف شعر بلازما prp اكسوزوم مينوكسيديل صلع","crmName":"Wellness Card Queen Hair Package","sub":"dm-hair"},{"id":"z-bright","cat":"derma","ar":"باقة الإشراقة الساطعة (تفتيح البشرة)","en":"Bright Radiance Package","price":2499,"items":["قناع الإكسوزوم","توريد الشفايف","تقشير بارد","جلستين تفتيح بحمض الترانيكساميك","كريم عناية منزلية"],"for":["تصبغات","ترطيب ومظهر شبابي"],"needs":["skin"],"say":"«تقشير بارد مع ترانيكساميك وإكسوزوم وكريم منزلي.»","pts":[],"open":[],"notes":[],"src":["der","pb","crm"],"kw":"تفتيح نور ترانيكساميك كلف","crmName":"Wellness Card Bright Radiance Package","sub":"dm-prem"},{"id":"z-eye","cat":"derma","ar":"باقة عيون المها (محيط العين)","en":"Oryx Eyes Package","price":1999,"items":["بيبي بوتوكس 4 جلسات","تفتيح حول العين"],"for":["هالات سودا ووش مرهق","خطوط رفيعة حوالين العين"],"needs":["skin"],"say":"«للهالات والخطوط حوالين العين.»","pts":[],"open":[],"notes":[],"src":["der","pb","crm"],"kw":"هالات عين","crmName":"Wellness Card Oryx eyes Package","sub":"dm-prem"},{"id":"z-lip","cat":"derma","ar":"فيلر StarFill 1 مل","en":"StarFill Filler 1 ml","price":999,"items":["فيلر هيالورونيك 1 مل"],"for":["شفايف","خطوط حول الأنف والفم","تحت العين، الخدود، الفك والدقن"],"needs":["skin"],"say":"«فيلر 1 مل بـ999.»","pts":[],"open":[],"notes":[],"src":["der","crm"],"kw":"فيلر شفايف","crmName":"Wellness Card StarFill Filler 1 ml","sub":"dm-inj"},{"id":"iv-energy","cat":"iv","ar":"Energy Boost IV Drip","en":"Energy Booster VitaDrip – ERPR0070","price":1700,"items":["Magnesium","Vitamin B12","Amino Acids","Vitamin C","3 جرعات: أسبوعيًا لمدة أسبوعين، وبعدها كل أسبوعين عند الحاجة"],"for":["تعب مستمر","إنتاجية قليلة","احتراق وظيفي (burnout)"],"needs":["iv","vitamins"],"say":"«محلول بيستعيد الطاقة ويقلل التعب.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"ارهاق تعب طاقة محلول وريدي","sub":"lab-iv"},{"id":"iv-immune","cat":"iv","ar":"Immune Booster IV Drip","en":"Immune Booster VitaDrip – ERPR0074","price":1700,"items":["Vitamin C","Vitamin E","Selenium","Copper","8 جرعات: أسبوعيًا لمدة 4 أسابيع، وبعدها كل أسبوعين لمدة شهرين"],"for":["عايز يحسّن مناعته","ضعف المناعة","التعافي بعد عملية"],"needs":["iv"],"say":"«محلول بيدعم المناعة والتعافي.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"مناعة محلول","sub":"lab-iv"},{"id":"iv-glow","cat":"iv","ar":"Skin Glow IV Drip","en":"Skin Glow VitaDrip – ERPR0075","price":1700,"items":["Selenium","Vitamin C","Water-soluble vitamins","Trace elements","Antioxidants","8 جرعات"],"for":["نضارة البشرة","مظهر شبابي","علاج التصبغات"],"needs":["iv","skin"],"say":"«محلول مضادات أكسدة لنضارة البشرة.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"نضارة محلول بشرة","crmName":"Wellness card Skin health IV Drip","sub":"lab-iv"},{"id":"iv-hair","cat":"iv","ar":"Hair Regenerate IV Drip","en":"Hair Regenerate VitaDrip – ERPR0077","price":1700,"items":["Vitamin C","Zinc","Selenium","Vitamin B Complex","6 جرعات"],"for":["ترقق الشعر","نمو بطيء","تساقط مرتبط بنقص عناصر"],"needs":["iv","hair"],"say":"«محلول بيغذّي البصيلة ويقلل التساقط.»","pts":[],"open":[],"notes":[],"src":["crm"],"kw":"تساقط محلول شعر","crmName":"Wellness card Hair Strength IV DRIP","sub":"lab-iv"},{"id":"a-sculptra","cat":"aes","ar":"سكلبترا – استشارة","en":"SCULPTRA (Poly-L-Lactic Acid)","price":2999,"brand":"Sculptra","items":["محفز كولاجين بالحقن (PLLA)","يبني كولاجين البشرة تدريجيًا","بيحسن الشد والجودة من غير ما يضيف حجم","البروتوكول وعدد الجلسات يحددهم الطبيب"],"for":["ترهل بعد خسارة الوزن","مستخدمي كريمات الشد","بيسأل عن الكولاجين أو الفيلر","30+ عايز بشرة مشدودة"],"needs":["skin","weight"],"say":"«الترهل بعد الرجيم سببه نقص الكولاجين مش الجفاف. سكلبترا بتحفّز الكولاجين الطبيعي تدريجيًا. أحجزلك استشارة؟»","notes":["السعر للجلسة أو الفيال من الـ CRM. الطبيب هو اللي بيحدد عدد الجلسات."],"src":["sig","crm"],"kw":"سكلبترا ترهل كولاجين شد بعد التخسيس sculptra","open":[],"pts":[],"crmName":"Sculptra Collagen stimulator Vial","sub":"dm-inj"},{"id":"a-revital","cat":"aes","ar":"ريفيتال – استشارة","en":"REVITAL (salmon DNA skin booster)","price":999,"brand":"ReVital","items":["Salmon DNA (polynucleotide) للترميم","هيالورونيك للترطيب العميق","Argireline يقلل الخطوط التعبيرية"],"for":["بشرة باهتة أو جافة","خطوط رفيعة","مستخدمي سيرومات الترطيب","مناسبة قريبة","بيسأل عن skin boosters"],"needs":["skin"],"say":"«السيروم بيشتغل على السطح، لكن ريفيتال بيرطب ويرمم من جوه طبقات البشرة. أحجزلك استشارة؟»","notes":["السعر للجلسة أو الفيال من الـ CRM. الطبيب هو اللي بيحدد عدد الجلسات."],"src":["sig","crm"],"kw":"ريفيتال سالمون ترطيب سيروم revital","open":[],"pts":[],"crmName":"Revital Salmon Skin booster 5ml","sub":"dm-inj"},{"id":"a-univa","cat":"aes","ar":"يونيفا – استشارة","en":"UNIVA (EXO range)","price":799,"brand":"UNIVA","items":["EXO HA: تجديد وترطيب وشد","EXO LITE: تصبغات وهالات","EXO REFORM و VITA: حب الشباب والندبات","EXO CAPA: تساقط الشعر وضعف الكثافة"],"for":["حب شباب أو آثاره","تصبغات أو هالات","تساقط شعر","بعد إجراءات تجميلية"],"needs":["acne","skin","hair"],"say":"«المنتجات الموضعية بتاخد وقت مع الحالات العميقة. يونيفا فيها تركيبة لكل مشكلة والطبيب بيحدد. أحجزلك استشارة؟»","notes":["السعر للجلسة أو الفيال من الـ CRM. الطبيب هو اللي بيحدد عدد الجلسات."],"src":["sig","crm"],"kw":"يونيفا ندبات تصبغات هالات تساقط univa exo","open":[],"pts":[],"crmName":"Univa Plant skin rejuvenation 2.5 ml","sub":"dm-inj"},{"id":"a-nxc","cat":"aes","ar":"NXC NAD+ – استشارة","en":"NXC NAD+","price":1499,"brand":"NXC","items":["NAD+ مع polynucleotide وكولاجين وببتيدات","مش فيلر ومش بيغير ملامح الوجه","التحسن غالبًا بيبدأ بعد أسبوع","للرجال والسيدات من سن 20"],"for":["بشرة باهتة أو جافة","خطوط مبكرة","آثار حبوب","مستخدمي منتجات مكافحة الشيخوخة"],"needs":["skin"],"say":"«عايزة نضارة من غير ما يتغير شكل الوش؟ NAD+ مش فيلر، وبيحسن جودة البشرة تدريجيًا. أحجزلك استشارة؟»","notes":["السعر للجلسة أو الفيال من الـ CRM. الطبيب هو اللي بيحدد عدد الجلسات."],"src":["sig","crm"],"kw":"nad نضارة anti aging شيخوخة","open":[],"pts":[],"crmName":"NXC NAD+ Glowing 6 ml","sub":"dm-inj"},{"price":299,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"bones","cat":"lab","ar":"باقة صحة العظام والمفاصل","en":"Wellness Card Bone and Joints Health","items":["المحتوى التفصيلي مش ظاهر في الـ CRM، اسأل العيادة قبل ما تشرحه للضيف"],"for":["آلام عظام أو مفاصل","بيشتري مكملات كالسيوم أو جلوكوزامين","كبار السن"],"needs":["bones","parents"],"say":"«باقة صحة العظام والمفاصل بتطمنك على أسباب الألم من جوه.»","kw":"عظام مفاصل جلوكوزامين خشونة","sub":"lab-vit"},{"price":149,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"bmd","cat":"lab","ar":"قياس كثافة العظام (BMD)","en":"Wellness Cards Bone Mineral Density BMD","items":["قياس كثافة العظام"],"for":["سيدات بعد انقطاع الطمث","مستخدمي فوساماكس أو كالسيوم","كبار السن"],"needs":["bones","women","parents"],"say":"«قياس كثافة العظام بيكشف الهشاشة بدري.»","kw":"هشاشة كثافة عظام bmd فوساماكس","sub":"lab-vit"},{"price":349,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"git","cat":"lab","ar":"باقة الاطمئنان على صحة الجهاز الهضمي","en":"Wellness Card GIT Health","items":["المحتوى التفصيلي مش ظاهر في الـ CRM، اسأل العيادة قبل ما تشرحه للضيف"],"for":["قولون أو انتفاخ متكرر","بيشتري مضادات حموضة أو بروبيوتيك"],"needs":["checkup"],"say":"«لو المشكلة متكررة، باقة الجهاز الهضمي بتطمنك على السبب.»","kw":"هضم قولون انتفاخ حموضة معدة بروبيوتيك","sub":"lab-spec"},{"price":299,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"gym","cat":"lab","ar":"باقة الصحة للرياضيين","en":"Wellness Card GYM Package","items":["المحتوى التفصيلي مش ظاهر في الـ CRM، اسأل العيادة قبل ما تشرحه للضيف"],"for":["بيشتري بروتين أو كرياتين أو مكملات رياضية"],"needs":["men","checkup"],"say":"«طالما بتتمرن وبتاخد مكملات، باقة الرياضيين بتطمنك على جسمك.»","kw":"جيم رياضيين بروتين كرياتين gym","sub":"lab-check"},{"price":250,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"chronicmed","cat":"lab","ar":"باقة الأدوية المزمنة","en":"Wellness Card Chronic Medications Package","items":["المحتوى التفصيلي مش ظاهر في الـ CRM، اسأل العيادة قبل ما تشرحه للضيف"],"for":["ضيف على أدوية مزمنة: ضغط، سكر، دهون"],"needs":["chronic"],"say":"«باقة الأدوية المزمنة بتتابع تأثير العلاج على جسمك.»","kw":"ادوية مزمنة ضغط سكر متابعة","sub":"lab-check"},{"price":888,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"dm8","cat":"spec","ar":"برنامج العناية بالسكري (8 خطوات)","en":"Wellness Card 8-steps Diabetes Program","items":["المحتوى التفصيلي مش ظاهر في الـ CRM، اسأل العيادة قبل ما تشرحه للضيف"],"for":["مريض سكر محتاج متابعة منظمة"],"needs":["chronic"],"say":"«برنامج متكامل لمتابعة السكر خطوة بخطوة.»","kw":"سكر سكري برنامج انسولين","sub":"lab-spec"},{"price":699,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"physio3","cat":"spec","ar":"العلاج الطبيعي","en":"Wellness Card Physiotherapy","items":["3 جلسات: 699","6 جلسات: 1,199","12 جلسة: 1,999"],"for":["آلام ظهر أو رقبة أو مفاصل","بعد إصابة رياضية","بيشتري مسكنات أو جل للعضلات باستمرار"],"needs":["bones"],"say":"«لو الألم متكرر، العلاج الطبيعي بيعالج السبب مش بس العرض.»","kw":"علاج طبيعي ظهر رقبة عضلات مسكن physio","sub":"lab-spec"},{"price":500,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"d-composite","cat":"dental","ar":"باقة إصلاح سن واحد (حشو تجميلي)","en":"Dental Composite Package","items":["حشو كومبوزيت لسن واحد"],"for":["تسوس أو كسر بسيط"],"needs":["dental"],"say":"«إصلاح سن واحد بالحشو التجميلي.»","kw":"حشو تسوس سن كومبوزيت","sub":"dt-tx"},{"price":1200,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"d-rct","cat":"dental","ar":"باقة علاج عصب سن واحد","en":"Root Canal Therapy Package","items":["علاج عصب سن واحد"],"for":["ألم سن شديد","بيشتري مسكنات أسنان باستمرار"],"needs":["dental"],"say":"«لو الألم مستمر، ممكن يكون محتاج علاج عصب.»","kw":"عصب الم سن مسكن","sub":"dt-tx"},{"price":349,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"z-laser1","cat":"derma","ar":"ليزر إزالة شعر الجسم كامل – جلسة واحدة","en":"Laser Hair Removal One Session Full Body","items":["جلسة واحدة مع رتوش"],"brand":"GentleMax Pro","for":["تجربة أول مرة","تحضير لمناسبة"],"needs":["skin","bride"],"say":"«جربي جلسة ليزر كامل الجسم.»","kw":"ليزر ازالة شعر","sub":"dm-laser"},{"price":249,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"z-beard","cat":"derma","ar":"ليزر تحديد اللحية للرجال – جلسة","en":"Laser Hair Removal One Session Men Beard","items":["جلسة 10–15 دقيقة"],"brand":"GentleMax Pro","for":["شفرات وتحديد متكرر","التهاب بعد الحلاقة","شعر تحت الجلد"],"needs":["men","skin"],"say":"«حدد لحيتك بالليزر وارتاح من التحديد المتكرر.»","kw":"لحية دقن ليزر","sub":"dm-laser"},{"price":399,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"z-brow","cat":"derma","ar":"تشقير الحواجب + توريد الشفايف + ديرمابن","en":"Eyebrows bleaching + Lip glowing + Dermapen","items":["تشقير الحواجب","توريد الشفايف","ديرمابن للنضارة"],"for":["قبل مناسبة"],"needs":["skin","bride"],"say":"«3 خدمات في جلسة واحدة.»","kw":"حواجب شفايف ديرمابن","sub":"dm-skin"},{"price":499,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"z-pico","cat":"derma","ar":"تفتيح بجهاز Picoway – جلستين","en":"Wellness Card Picoway whitening (2) sessions","items":["2 جلسة تفتيح"],"brand":"Picoway","for":["تصبغات وكلف","مناطق داكنة"],"needs":["skin"],"say":"«تفتيح التصبغات بجهاز Picoway.»","kw":"تفتيح تصبغات كلف بيكو picoway","sub":"dm-skin"},{"price":149,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"z-encurve1","cat":"derma","ar":"نحت الجسم بجهاز EnCurve","en":"Wellness Card EnCurve","items":["جلسة واحدة: 149","3 جلسات: 299"],"brand":"EnCurve","for":["دهون موضعية بعد الرجيم","بيشتري كريمات تنحيف أو شد"],"needs":["weight","skin"],"say":"«نحت وتنسيق قوام الجسم بجهاز EnCurve.»","kw":"نحت تنحيف دهون موضعية انكيرف encurve","sub":"dm-body"},{"price":1299,"open":[],"pts":[],"notes":["باقة جديدة من الـ CRM."],"src":["crm"],"id":"z-skinc","cat":"aes","ar":"SkinCeuticals P-Tiox + بوتوكس الجبهة","en":"Wellness Card SkinCeuticals P-Tiox + Forehead Botox","items":["SkinCeuticals P-Tiox","بوتوكس الجبهة"],"brand":"SkinCeuticals","for":["خطوط تعبيرية","بيشتري منتجات SkinCeuticals"],"needs":["skin"],"say":"«بوتوكس الجبهة مع روتين P-Tiox للحفاظ على النتيجة.»","kw":"سكين سيوتيكالز بوتوكس skinceuticals","sub":"dm-inj"},{"src":["crm"],"items":[],"notes":[],"id":"poc0","cat":"poc","sub":"poc-dm","poc":1,"ar":"سكر عشوائي","en":"Random Blood Sugar","price":65,"kw":"سكر","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc1","cat":"poc","sub":"poc-dm","poc":1,"ar":"سكر صائم","en":"FBS","price":65,"kw":"سكر صائم","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc2","cat":"poc","sub":"poc-dm","poc":1,"ar":"السكر التراكمي","en":"HBA1C","price":93,"kw":"سكر تراكمي","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc3","cat":"poc","sub":"poc-dm","poc":1,"ar":"منحنى السكر","en":"GLUCOSE TOLERENCE TEST (GTT)","price":200,"kw":"سكر حمل منحنى","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc4","cat":"poc","sub":"poc-dm","poc":1,"ar":"الإنسولين","en":"INSULIN","price":280,"kw":"انسولين","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc5","cat":"poc","sub":"poc-dm","poc":1,"ar":"الإنسولين صائم","en":"INSULIN (FASTING)","price":280,"kw":"انسولين صائم","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc6","cat":"poc","sub":"poc-dm","poc":1,"ar":"مقاومة الإنسولين","en":"HOMA IR","price":250,"kw":"مقاومة انسولين تكيس تخسيس","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc7","cat":"poc","sub":"poc-dm","poc":1,"ar":"سي ببتيد","en":"C - PEPTIDE","price":345,"kw":"سكر بنكرياس","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc8","cat":"poc","sub":"poc-th","poc":1,"ar":"هرمون الغدة الدرقية TSH","en":"TSH","price":120,"kw":"غدة درقية","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc9","cat":"poc","sub":"poc-th","poc":1,"ar":"T3 الحر","en":"T3 FREE","price":120,"kw":"غدة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc10","cat":"poc","sub":"poc-th","poc":1,"ar":"T4 الحر","en":"T4 FREE","price":120,"kw":"غدة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc11","cat":"poc","sub":"poc-th","poc":1,"ar":"وظائف الغدة الدرقية كاملة","en":"THYROID FUNCTION (TSH+FT3+FT4)","price":222,"kw":"غدة درقية","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc14","cat":"poc","sub":"poc-th","poc":1,"ar":"هرمون الغدة الجار درقية","en":"Parathyroid Hormone (PTH)","price":200,"kw":"كالسيوم عظام","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc15","cat":"poc","sub":"poc-th","poc":1,"ar":"الكالسيتونين","en":"S.CALCITONIN","price":860,"kw":"غدة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc17","cat":"poc","sub":"poc-hr","poc":1,"ar":"التستوستيرون الحر","en":"FREE TESTOSTERONE","price":150,"kw":"رجال هرمون","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc19","cat":"poc","sub":"poc-hr","poc":1,"ar":"الإستراديول","en":"ESTRADIOL","price":200,"kw":"هرمون انوثة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc20","cat":"poc","sub":"poc-hr","poc":1,"ar":"البروجيستيرون","en":"PROGESTERONE","price":280,"kw":"حمل تبويض","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc21","cat":"poc","sub":"poc-hr","poc":1,"ar":"هرمون الحليب (البرولاكتين)","en":"PROLACTIN","price":150,"kw":"تاخر حمل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc22","cat":"poc","sub":"poc-hr","poc":1,"ar":"هرمون LH","en":"L.H.","price":120,"kw":"تبويض خصوبة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc23","cat":"poc","sub":"poc-hr","poc":1,"ar":"هرمون FSH","en":"FSH","price":120,"kw":"تبويض خصوبة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc24","cat":"poc","sub":"poc-hr","poc":1,"ar":"مخزون المبيض AMH","en":"ANTI MULLERIAN HORMONE (AMH)","price":500,"kw":"خصوبة مبيض حمل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc25","cat":"poc","sub":"poc-hr","poc":1,"ar":"DHEA-S","en":"DHEA-S","price":490,"kw":"هرمون تكيس شعر","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc26","cat":"poc","sub":"poc-hr","poc":1,"ar":"الكورتيزول صباحاً","en":"CORTISOL (AM)","price":200,"kw":"كورتيزون اجهاد","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc27","cat":"poc","sub":"poc-hr","poc":1,"ar":"الكورتيزول مساءً","en":"CORTISOL (PM)","price":200,"kw":"اجهاد","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc28","cat":"poc","sub":"poc-hr","poc":1,"ar":"هرمون النمو","en":"GROWTH HORMONE","price":280,"kw":"طول اطفال","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc29","cat":"poc","sub":"poc-hr","poc":1,"ar":"IGF-1","en":"Insulin-Like Growth F1 (Somatomedin)","price":450,"kw":"نمو","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc30","cat":"poc","sub":"poc-hr","poc":1,"ar":"الألدوستيرون","en":"ALDOSTERONE / Aldosterone in Urine","price":330,"kw":"ضغط","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc31","cat":"poc","sub":"poc-pr","poc":1,"ar":"اختبار حمل","en":"PREGNANCY TEST","price":50,"kw":"حمل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc32","cat":"poc","sub":"poc-pr","poc":1,"ar":"هرمون الحمل الرقمي","en":"B.HCG (QUANTITATIVE)","price":250,"kw":"حمل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc33","cat":"poc","sub":"poc-pr","poc":1,"ar":"توكسوبلازما IgG","en":"TOXO PLASMA IGG","price":200,"kw":"حمل قطط","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc34","cat":"poc","sub":"poc-pr","poc":1,"ar":"توكسوبلازما IgM","en":"TOXO PLASMA IGM","price":200,"kw":"حمل قطط","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc35","cat":"poc","sub":"poc-pr","poc":1,"ar":"الحصبة الألمانية IgG","en":"RUBELLA IGG ANTIBODY","price":172.5,"kw":"حمل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc36","cat":"poc","sub":"poc-pr","poc":1,"ar":"تحليل السائل المنوي","en":"SEMEN ANALYSIS","price":120,"kw":"خصوبة رجال تاخر انجاب","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc37","cat":"poc","sub":"poc-lv","poc":1,"ar":"إنزيم الكبد ALT","en":"SGPT","price":70,"kw":"كبد","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc38","cat":"poc","sub":"poc-lv","poc":1,"ar":"إنزيم الكبد AST","en":"SGOT","price":70,"kw":"كبد","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc39","cat":"poc","sub":"poc-lv","poc":1,"ar":"جاما جي تي","en":"GAMMA GT","price":90,"kw":"كبد","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc41","cat":"poc","sub":"poc-lv","poc":1,"ar":"الألبومين","en":"ALBUMIN","price":70,"kw":"كبد بروتين","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc42","cat":"poc","sub":"poc-lv","poc":1,"ar":"الصفراء الكلية","en":"BILIRUBIN TOTAL","price":65,"kw":"صفرا يرقان","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc43","cat":"poc","sub":"poc-lv","poc":1,"ar":"الصفراء المباشرة","en":"BILIRUBIN DIRECT","price":65,"kw":"صفرا","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc44","cat":"poc","sub":"poc-lv","poc":1,"ar":"الأميليز","en":"AMYLASE (PANCREATIC)","price":112.5,"kw":"بنكرياس","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc45","cat":"poc","sub":"poc-lv","poc":1,"ar":"الليباز","en":"S.Lipase","price":140,"kw":"بنكرياس","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc46","cat":"poc","sub":"poc-kd","poc":1,"ar":"الكرياتينين","en":"CREATININE","price":65,"kw":"كلى","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc47","cat":"poc","sub":"poc-kd","poc":1,"ar":"معدل ترشيح الكلى eGFR","en":"ESTIMATED GFR (EGFR) PROFILE","price":175,"kw":"كلى","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc48","cat":"poc","sub":"poc-kd","poc":1,"ar":"الزلال في البول","en":"MICROALBUMIN/CREATININE RATIO","price":200,"kw":"كلى سكر","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc49","cat":"poc","sub":"poc-kd","poc":1,"ar":"حمض اليوريك (النقرس)","en":"URIC ACID","price":75,"kw":"نقرس مفاصل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc50","cat":"poc","sub":"poc-kd","poc":1,"ar":"البوتاسيوم","en":"POTASSIUM","price":75,"kw":"املاح","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc51","cat":"poc","sub":"poc-vt","poc":1,"ar":"الكالسيوم","en":"CALCIUM","price":75,"kw":"عظام","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc52","cat":"poc","sub":"poc-vt","poc":1,"ar":"الفوسفور","en":"PHOSPHORUS","price":100,"kw":"عظام","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc53","cat":"poc","sub":"poc-vt","poc":1,"ar":"المغنيسيوم","en":"MAGNESIUM","price":100,"kw":"تقلصات","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc54","cat":"poc","sub":"poc-vt","poc":1,"ar":"الزنك","en":"ZINC","price":393,"kw":"شعر مناعة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc56","cat":"poc","sub":"poc-vt","poc":1,"ar":"الحديد","en":"IRON","price":85,"kw":"انيميا","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc57","cat":"poc","sub":"poc-vt","poc":1,"ar":"مخزون الحديد (الفيريتين)","en":"SERUM FERRITIN","price":106.95,"kw":"انيميا تساقط شعر","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc59","cat":"poc","sub":"poc-vt","poc":1,"ar":"فيتامين B12","en":"VITAMIN B12","price":193,"kw":"تنميل اعصاب","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc60","cat":"poc","sub":"poc-vt","poc":1,"ar":"حمض الفوليك","en":"FOLIC ACID","price":250,"kw":"حمل انيميا","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc61","cat":"poc","sub":"poc-vt","poc":1,"ar":"فيتامين B1","en":"Vitamin B1 (Thiamin)","price":600,"kw":"اعصاب","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc62","cat":"poc","sub":"poc-vt","poc":1,"ar":"فيتامين B2","en":"Vitamin B2 (Riboflavin)","price":445,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc63","cat":"poc","sub":"poc-vt","poc":1,"ar":"فيتامين B3","en":"Vitamin B3 (Nicotinamide)","price":500,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc64","cat":"poc","sub":"poc-vt","poc":1,"ar":"فيتامين B6","en":"VITAMIN B6 (Pyridoxal Phosphate)","price":780,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc65","cat":"poc","sub":"poc-vt","poc":1,"ar":"فيتامين C","en":"Vitamin C (Ascorbic Acid)","price":730,"kw":"مناعة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc66","cat":"poc","sub":"poc-vt","poc":1,"ar":"فيتامين K1","en":"Vitamin K1 (Phylloquinone)","price":540,"kw":"تجلط","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc67","cat":"poc","sub":"poc-bl","poc":1,"ar":"صورة دم كاملة","en":"CBC With Diff","price":93,"kw":"انيميا دم","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc68","cat":"poc","sub":"poc-bl","poc":1,"ar":"الأنيميا المنجلية","en":"SICKLE CELL","price":138,"kw":"دم وراثي","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc69","cat":"poc","sub":"poc-bl","poc":1,"ar":"أنيميا الفول G6PD","en":"G6PD","price":465,"kw":"فول","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc70","cat":"poc","sub":"poc-bl","poc":1,"ar":"فصيلة الدم","en":"ABO GROUP & Rh.","price":70,"kw":"فصيلة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc71","cat":"poc","sub":"poc-bl","poc":1,"ar":"سيولة الدم PT/INR-PTT","en":"Coagulation profile (PT/INR-PTT)","price":220,"kw":"سيولة وارفارين","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc73","cat":"poc","sub":"poc-bl","poc":1,"ar":"دي دايمر","en":"D-DIMER","price":262.5,"kw":"جلطة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc77","cat":"poc","sub":"poc-ht","poc":1,"ar":"الدهون الكاملة","en":"TOTAL LIPIDS (Cholesterol, TG, HDL, LDL)","price":293,"kw":"كوليسترول دهون","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc78","cat":"poc","sub":"poc-ht","poc":1,"ar":"الكوليسترول الضار LDL","en":"LDL","price":65,"kw":"كوليسترول","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc79","cat":"poc","sub":"poc-ht","poc":1,"ar":"ليبوبروتين (a)","en":"Lipoprotein (a)","price":385,"kw":"قلب دهون","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc80","cat":"poc","sub":"poc-ht","poc":1,"ar":"الهوموسيستين","en":"HOMOCYSTEINE","price":465,"kw":"قلب","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc81","cat":"poc","sub":"poc-ht","poc":1,"ar":"التروبونين","en":"TROPONIN T","price":200,"kw":"قلب ذبحة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc82","cat":"poc","sub":"poc-ht","poc":1,"ar":"إنزيم العضلات CPK","en":"CPK","price":80,"kw":"عضلات ستاتين","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc83","cat":"poc","sub":"poc-ht","poc":1,"ar":"CK-MB","en":"CPK MB (CK.MB)","price":80,"kw":"قلب","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc84","cat":"poc","sub":"poc-ht","poc":1,"ar":"Pro-BNP","en":"pro-BNP","price":350,"kw":"قلب هبوط","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc85","cat":"poc","sub":"poc-im","poc":1,"ar":"CRP عالي الحساسية","en":"C-Reactive Protein (CRP) High Sensitivity","price":90,"kw":"التهاب قلب","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc86","cat":"poc","sub":"poc-im","poc":1,"ar":"عامل الروماتويد","en":"RHEUMATOID FACTOR","price":100,"kw":"روماتيزم مفاصل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc87","cat":"poc","sub":"poc-im","poc":1,"ar":"Anti CCP","en":"ANTI CCP","price":265,"kw":"روماتويد مفاصل","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc88","cat":"poc","sub":"poc-im","poc":1,"ar":"ANA","en":"ANA","price":305,"kw":"مناعة ذاتية","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc89","cat":"poc","sub":"poc-im","poc":1,"ar":"IgE","en":"IgE","price":305,"kw":"حساسية","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc90","cat":"poc","sub":"poc-im","poc":1,"ar":"IgG","en":"IgG","price":305,"kw":"مناعة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc91","cat":"poc","sub":"poc-im","poc":1,"ar":"حساسية الاستنشاق RAST","en":"RAST INHALATION","price":550,"kw":"حساسية ربو غبار","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc92","cat":"poc","sub":"poc-im","poc":1,"ar":"حساسية القمح (السيلياك)","en":"ANTI-TISSUE TRANSGLUTAMINASE IGA","price":450,"kw":"جلوتين قمح","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc93","cat":"poc","sub":"poc-inf","poc":1,"ar":"فيروس B","en":"HBS AG","price":150,"kw":"كبد وبائي","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc94","cat":"poc","sub":"poc-inf","poc":1,"ar":"مناعة فيروس B","en":"HBS ANTIBODY","price":250,"kw":"تطعيم","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc95","cat":"poc","sub":"poc-inf","poc":1,"ar":"فيروس C","en":"HCV","price":150,"kw":"كبد وبائي","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc97","cat":"poc","sub":"poc-inf","poc":1,"ar":"فيروس A","en":"HAV IgM","price":250,"kw":"كبد","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc98","cat":"poc","sub":"poc-inf","poc":1,"ar":"HIV","en":"HIV","price":150,"kw":"ايدز","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc99","cat":"poc","sub":"poc-inf","poc":1,"ar":"الزهري","en":"SYPHILIS ABS","price":370,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc100","cat":"poc","sub":"poc-inf","poc":1,"ar":"VDRL","en":"VDRL","price":126.5,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc101","cat":"poc","sub":"poc-inf","poc":1,"ar":"الهربس 1 IgG","en":"Herpes Virus (HSV) 1 IgG","price":230,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc102","cat":"poc","sub":"poc-inf","poc":1,"ar":"الهربس 1 IgM","en":"Herpes Virus (HSV) 1 IgM","price":245,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc103","cat":"poc","sub":"poc-gi","poc":1,"ar":"جرثومة المعدة (دم)","en":"H. PYLORI SCREENING","price":150,"kw":"معدة جرثومة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc104","cat":"poc","sub":"poc-gi","poc":1,"ar":"جرثومة المعدة (براز)","en":"H. PYLORI ANTIGEN IN STOOL","price":112.5,"kw":"معدة جرثومة","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc105","cat":"poc","sub":"poc-gi","poc":1,"ar":"تحليل براز","en":"STOOL ANALYSIS","price":70,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc106","cat":"poc","sub":"poc-gi","poc":1,"ar":"مزرعة براز","en":"STOOL C/S","price":250,"kw":"","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc107","cat":"poc","sub":"poc-gi","poc":1,"ar":"دم خفي في البراز","en":"OCCULT BLOOD IN STOOL","price":75,"kw":"قولون","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc108","cat":"poc","sub":"poc-gi","poc":1,"ar":"FIT للقولون","en":"Fecal Immunochemical Test (FIT)","price":225,"kw":"قولون اورام","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc109","cat":"poc","sub":"poc-gi","poc":1,"ar":"الكالبروتكتين","en":"Calprotectin","price":465,"kw":"قولون التهاب","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc110","cat":"poc","sub":"poc-gi","poc":1,"ar":"تحليل بول","en":"Urine Analysis","price":75,"kw":"بول","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc111","cat":"poc","sub":"poc-gi","poc":1,"ar":"مزرعة بول","en":"URINE CULTURE","price":200,"kw":"التهاب بول","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc112","cat":"poc","sub":"poc-tm","poc":1,"ar":"البروستاتا PSA","en":"TOTAL PSA","price":270,"kw":"بروستاتا رجال","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc113","cat":"poc","sub":"poc-tm","poc":1,"ar":"CEA","en":"CEA","price":305,"kw":"اورام","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc114","cat":"poc","sub":"poc-tm","poc":1,"ar":"CA 125 (المبيض)","en":"CA 125","price":460,"kw":"اورام","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc115","cat":"poc","sub":"poc-tm","poc":1,"ar":"CA 19.9","en":"CA 19.9","price":460,"kw":"اورام","open":[],"pts":[]},{"src":["crm"],"items":[],"notes":[],"id":"poc116","cat":"poc","sub":"poc-tm","poc":1,"ar":"CA 15.3 (الثدي)","en":"CA 15.3","price":460,"kw":"اورام ثدي","open":[],"pts":[]}];
+SRC.pub="Nahdi Well public flyers";
+const CATS = [["all","الكل"],["lab","تحاليل Care Plus"],["spec","باقات تخصصية"],["dental","أسنان"],["derma","جلدية وتجميل"],["aes","استشارات بالبراند"],["iv","IV VitaDrips"]];
+const NEEDS = [["weight","إبر تخسيس / وزن"],["chronic","ضغط / سكر / مزمن"],["checkup","فحص شامل"],["parents","الوالدين"],["acne","حب شباب / رواكيوتان"],["hair","تساقط شعر"],["skin","بشرة وتجميل"],["vitamins","فيتامينات ومعادن"],["bones","عظام / فيتامين د"],["preg","حمل"],["women","صحة المرأة"],["men","صحة الرجل"],["heart","القلب"],["smoke","تدخين"],["dental","أسنان"],["bride","عروس"],["kids","أطفال"],["iv","محاليل وريدية"]];
+
+let state = {sec:"lab",cat:"all",need:null,q:"",open:null,incl:true,send:null};
+try{ const sv=localStorage.getItem("wcai_sec"); if(sv) state.sec=sv; }catch(e){}
+try{ const v=localStorage.getItem("wcai_vat_incl"); if(v!==null) state.incl = v==="1"; }catch(e){}
+
+const $ = s=>document.querySelector(s);
+const fmt = n => n==null ? "—" : n.toLocaleString("en-US",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
+const r2 = n => Math.round(n*100)/100;
+function money(p){
+  if(p==null) return null;
+  const ex = p;
+  const inc = r2(p*(1+VAT));
+  return {ex, vat:r2(inc-ex), inc};
+}
+const norm = s => (s||"").toLowerCase().replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/[ًٌٍَُِّْ]/g,"");
+
+const SECTIONS=[
+  {k:"lab",col:"var(--n-sky)",ic:"🧪",t:"Lab",sub:"تحاليل وبرامج",cats:[["lab-check","فحوصات شاملة ودورية"],["lab-vit","فيتامينات ومعادن وعظام"],["lab-wt","الوزن وإبر التخسيس"],["lab-mwc","الرجل · المرأة · الطفل"],["lab-preg","الحمل"],["lab-spec","باقات متخصصة"],["lab-iv","IV VitaDrips"]]},
+  {k:"poc",col:"var(--n-purple)",ic:"🔬",t:"POC Lab",sub:"تحاليل فردية بالعيادة",cats:[["poc-dm", "السكر"], ["poc-th", "الغدة الدرقية"], ["poc-hr", "الهرمونات والخصوبة"], ["poc-pr", "الحمل"], ["poc-lv", "الكبد والبنكرياس"], ["poc-kd", "الكلى والأملاح"], ["poc-vt", "فيتامينات ومعادن"], ["poc-bl", "الدم والتجلط"], ["poc-ht", "القلب والدهون"], ["poc-im", "المناعة والحساسية"], ["poc-inf", "الفيروسات والعدوى"], ["poc-gi", "المعدة والبراز والبول"], ["poc-tm", "دلالات الأورام"]]},
+  {k:"derma",col:"var(--n-red)",ic:"✨",t:"Derma",sub:"جلدية وتجميل",cats:[["dm-laser","ليزر إزالة الشعر"],["dm-skin","البشرة والنضارة"],["dm-inj","بوتوكس وفيلر وحقن تجديد"],["dm-hair","الشعر"],["dm-body","نحت الجسم"],["dm-prem","الباقات المميزة"]]},
+  {k:"dental",col:"var(--n-green)",ic:"🦷",t:"Dental",sub:"أسنان",cats:[["dt-prev","تنظيف ووقاية"],["dt-cos","تجميل الأسنان"],["dt-tx","علاج وزراعة"]]}
+];
+const secOf=c=>SECTIONS.find(s=>s.cats.some(x=>x[0]===c));
+const subLabel=c=>{for(const s of SECTIONS){const x=s.cats.find(x=>x[0]===c); if(x) return x[1];} return "";};
+function render(){
+  $("#vatIncl").checked = state.incl;
+  if(!SECTIONS.some(s=>s.k===state.sec)) state.sec="lab";
+  const q = norm(state.q.trim());
+  const filtering = !!(q||state.need);
+  $("#tabs").innerHTML = SECTIONS.map(s=>`<button class="seg" style="--sc:${s.col}" role="tab" aria-selected="${!filtering&&state.sec===s.k}" data-sec="${s.k}"><span class="ic">${s.ic}</span><b>${s.t}</b><small>${s.sub} · ${P.filter(p=>secOf(p.sub)===s).length}</small></button>`).join("");
+  $("#needs").innerHTML = NEEDS.map(([k,l])=>`<button class="chip" aria-pressed="${state.need===k}" data-need="${k}">${l}</button>`).join("");
+  const rows = P.filter(p=>{
+    if(!filtering) return secOf(p.sub).k===state.sec;
+    if(state.need && !(p.needs||[]).includes(state.need)) return false;
+    if(!q) return true;
+    const hay = norm([p.ar,p.en,p.kw,p.brand,(p.items||[]).join(" "),(p.for||[]).join(" "),(p.groups||[]).map(g=>g[0]+" "+g[1].join(" ")).join(" "),(p.open||[]).map(o=>o.t).join(" "),p.rms,p.his].join(" "));
+    return q.split(/\s+/).every(t=>hay.includes(t));
+  });
+  $("#count").textContent = filtering ? (rows.length?`${rows.length} نتيجة في كل الأقسام`:"") : "";
+  if(!rows.length){$("#list").innerHTML=`<div class="empty">مفيش باقة مطابقة. جرّب كلمة أبسط أو امسح الفلتر.</div>`;return;}
+  let html="";
+  SECTIONS.forEach(s=>{
+    const inSec=rows.filter(p=>secOf(p.sub)===s); if(!inSec.length) return;
+    if(filtering) html+=`<h2 class="sech" style="color:${s.col}">${s.ic} ${s.t} <small>${inSec.length}</small></h2>`;
+    s.cats.forEach(([c,l])=>{const g=inSec.filter(p=>p.sub===c); if(!g.length) return;
+      if(s.cats.length>1) html+=`<h3 class="subh" style="--sc:${s.col}">${l}</h3>`;
+      html+=g.map(card).join("");});
+  });
+  $("#list").innerHTML=html;
+}
+
+function pocCard(p){
+  const m=money(p.price), open=state.open===p.id;
+  return `<article class="card poc" style="--sc:${secOf(p.sub).col}" data-open="${open}">
+    <button class="row" data-id="${p.id}" aria-expanded="${open}">
+      <div><div class="nm">${p.ar}</div><div class="en">${p.en}</div></div>
+      <div class="pr">${m?`<b>${fmt(m.inc)} ر.س</b>`:`<span class="na">اسأل العيادة</span>`}</div>
+    </button>
+    <div class="det">
+      ${m?`<div class="money"><div><small>قبل الضريبة</small><strong>${fmt(m.ex)}</strong></div><div><small>الضريبة 15%</small><strong>${fmt(m.vat)}</strong></div><div><small>شامل الضريبة</small><strong>${fmt(m.inc)}</strong></div></div>`:""}
+      <div class="note">تحليل فردي في العيادة (Point of Care – Lab)، مش زيارة منزلية. لو الضيف محتاج أكتر من 3 تحاليل، قارن بباقات Care Plus، غالباً الباقة أوفر.</div>
+      ${(p.notes||[]).map(n=>`<div class="note">${n}</div>`).join("")}
+      <div class="meta"><span>المصدر: ${SRC.crm}</span></div>
+    </div>
+  </article>`;
+}
+function card(p){
+  if(p.poc) return pocCard(p);
+  const m = money(p.price);
+  const open = state.open===p.id;
+  const save = p.price && p.before ? Math.round((1-p.price/p.before)*100) : null;
+  const flags = (p.notes||[]).some(n=>n.includes("⚠"));
+  const tags = [
+    `<span class="tag">${subLabel(p.sub)}</span>`,
+    save?`<span class="tag">خصم ${save}%</span>`:"",
+    p.brand?`<span class="tag">${p.brand}</span>`:"",
+    (p.open&&p.open.length)?`<span class="tag">دخلة جاهزة ${p.open.length}</span>`:"",
+    flags?`<span class="tag w">راجع السعر</span>`:""
+  ].join("");
+  const priceHtml = m ? `<b>${fmt(m.inc)} ر.س</b>${p.before?`<s>${fmt(p.before)}</s>`:""}` : `<span class="na">${p.cat==="aes"?"السعر بعد الاستشارة":"السعر غير موجود بالملف"}</span>`;
+  const items = p.groups
+    ? `<ul class="items">${p.groups.map(g=>`<li class="grp">${g[0]}</li>`+g[1].map(i=>`<li>${i}</li>`).join("")).join("")}</ul>`
+    : `<ul class="items">${(p.items||[]).map(i=>`<li>${i}</li>`).join("")}</ul>`;
+  return `<article class="card" style="--sc:${secOf(p.sub).col}" data-open="${open}">
+    <button class="row" data-id="${p.id}" aria-expanded="${open}">
+      <div><div class="nm">${p.ar}</div><div class="en">${p.en}</div><div class="tags">${tags}</div></div>
+      <div class="pr">${priceHtml}</div>
+    </button>
+    <div class="det">
+      ${m?`<div class="money"><div><small>قبل الضريبة</small><strong>${fmt(m.ex)}</strong></div><div><small>الضريبة 15%</small><strong>${fmt(m.vat)}</strong></div><div><small>شامل الضريبة</small><strong>${fmt(m.inc)}</strong></div></div>`:""}
+      ${(p.open&&p.open.length)?`<h3>🎯 الدخلة</h3>${p.open.map(o=>`<details class="call"><summary>${o.t}</summary><p>${o.s}</p></details>`).join("")}`:""}
+      ${(p.pts&&p.pts.length)?`<h3>💡 نقاط البيع والمعلومات الداعمة</h3><ul class="plain pts">${p.pts.map(i=>`<li>${i}</li>`).join("")}</ul>`:""}
+      <h3>المحتوى</h3>${items}
+      ${p.follow?`<p style="font-size:13.5px;margin:6px 0 0"><b>متابعة:</b> ${p.follow}</p>`:""}
+      ${p.for?`<h3>الضيوف المحتملين (إشارات الضيف)</h3><ul class="plain">${p.for.map(i=>`<li>${i}</li>`).join("")}</ul>`:""}
+      <h3>جملة العرض</h3><div class="say">${p.say}</div>
+      ${p.perks?`<p style="font-size:13px;margin:8px 0 0">${p.perks}</p>`:""}
+      ${p.brand?`<p style="font-size:13px;margin:8px 0 0"><b>البراند/الجهاز:</b> ${p.brand}</p>`:""}
+      ${(p.notes||[]).map(n=>`<div class="note">${n}</div>`).join("")}
+      <div class="meta">
+        ${p.rms?`<span>RMS <code>${p.rms}</code></span>`:""}${p.his?`<span>HIS <code>${p.his}</code></span>`:""}
+        <span>المصدر: ${p.src.map(s=>SRC[s]).join(" · ")}</span>
+      </div>
+      <div class="actions">
+        <button class="btn primary" data-send="${p.id}">📲 ابعت للضيف واتساب</button>
+        <button class="btn" data-copy="${p.id}">نسخ الرسالة</button>
+        ${p.rms?`<button class="btn" data-code="${p.rms}">نسخ كود RMS</button>`:""}
+      </div>
+      ${state.send===p.id?sendForm(p):""}
+    </div>
+  </article>`;
+}
+
+/* ---------- Me / follow-ups ---------- */
+function lsGet(k,d){try{const v=localStorage.getItem("ai_"+k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem("ai_"+k,JSON.stringify(v));return true;}catch(e){return false;}}
+let ME = lsGet("wc_me",{name:"",mobile:"",store:"",pay:27});
+let FU = lsGet("wc_fu",[]);
+const todayISO = ()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+const iso = d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function purgeFU(){const lim=new Date();lim.setDate(lim.getDate()-30);FU=FU.filter(f=>f.due>=iso(lim));lsSet("wc_fu",FU);}
+function nextPayday(){
+  const pay=Math.min(31,Math.max(1,+ME.pay||27)); const t=new Date(); t.setHours(0,0,0,0);
+  for(let k=0;k<3;k++){const y=t.getFullYear(),m=t.getMonth()+k;const last=new Date(y,m+1,0).getDate();const d=new Date(y,m,Math.min(pay,last));if(d>t) return d;}
+}
+function dueFrom(opt){
+  const d=new Date(); d.setHours(0,0,0,0);
+  if(opt==="pay") return iso(nextPayday());
+  if(opt==="3") {d.setDate(d.getDate()+3);return iso(d);}
+  if(opt==="7") {d.setDate(d.getDate()+7);return iso(d);}
+  if(opt==="14"){d.setDate(d.getDate()+14);return iso(d);}
+  return null;
+}
+function normPhone(raw){
+  let d=(raw||"").replace(/[^0-9]/g,"");
+  d=d.replace(/^00/,"");
+  if(/^05\d{8}$/.test(d)) return "966"+d.slice(1);
+  if(/^5\d{8}$/.test(d)) return "966"+d;
+  if(/^9665\d{8}$/.test(d)) return d;
+  if(/^[1-9]\d{9,14}$/.test(d) && !d.startsWith("0")) return d;
+  return null;
+}
+function signature(){
+  const parts=[]; if(ME.name) parts.push(ME.name); if(ME.store) parts.push(ME.store);
+  let s=parts.join(" – ");
+  if(ME.mobile) s+=(s?"\n":"")+"جوالي للحجز والاستفسار: "+ME.mobile;
+  return s;
+}
+function calURL(f,p){
+  const d=f.due.replace(/-/g,"");
+  const title="متابعة ضيف: "+(f.name||"ضيف")+" – "+(p?p.ar:"باقة");
+  const det="رقم الضيف: +"+f.phone+"\nافتح رسالة التذكير: "+waURL(f.phone,reminderMsg(p,f.name));
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(title)+"&dates="+d+"T100000/"+d+"T101500&ctz=Asia/Riyadh&details="+encodeURIComponent(det);
+}
+function waURL(phone,text){return "https://wa.me/"+phone+"?text="+encodeURIComponent(text);}
+const IS_DESK=(navigator.maxTouchPoints||0)===0 && !/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+function sendForm(p){
+  const pd=nextPayday(); const pdTxt=pd?pd.toLocaleDateString("ar-SA-u-ca-gregory",{day:"numeric",month:"long"}):"";
+  return `<div class="send" data-form="${p.id}">
+    ${(!ME.mobile&&!IS_DESK)?`<div class="note">ضيف رقم جوالك من «⚙️ بياناتي» عشان يظهر في الرسالة.</div>`:""}
+    <label>رقم جوال الضيف<input id="gPhone" type="tel" inputmode="tel" placeholder="05xxxxxxxx" autocomplete="off"></label>
+    <label>اسم الضيف (اختياري)<input id="gName" type="text" autocomplete="off"></label>
+    <label>تذكير متابعة<select id="gFU">
+      <option value="">من غير متابعة</option>
+      <option value="pay">بعد الراتب (${pdTxt})</option>
+      <option value="3">بعد 3 أيام</option>
+      <option value="7">بعد أسبوع</option>
+      <option value="14">بعد أسبوعين</option>
+    </select></label>
+    <label class="chk"><input id="gOK" type="checkbox"> الضيف وافق إني أبعتله وأتابع معاه</label>
+    ${IS_DESK?`<div class="sendbtns">
+      <button class="wa" type="button" id="gQR">📱 اعرض QR وكمّل من موبايلك</button>
+      <a class="btn" id="gWA" href="#" target="_blank" rel="noopener" aria-disabled="true">أو افتح واتساب من الجهاز ده</a>
+    </div>
+    <p class="hint">على الـ POS واتساب محجوب. اضغط «اعرض QR» وامسحه بكاميرا موبايلك، والإرسال والمتابعة هيكملوا من الموبايل.</p>`
+    :`<div class="sendbtns">
+      <a class="wa" id="gWA" href="#" target="_blank" rel="noopener" aria-disabled="true">افتح واتساب وابعت</a>
+      <button class="btn" type="button" id="gQR">📱 اعرض QR لموبايل تاني</button>
+    </div>`}
+  </div>`;
+}
+function updateWA(){
+  const f=document.querySelector("[data-form]"); if(!f) return;
+  const p=P.find(x=>x.id===f.dataset.form); const ph=normPhone($("#gPhone").value);
+  const ok=$("#gOK").checked && !!ph; const a=$("#gWA");
+  a.setAttribute("aria-disabled", ok?"false":"true");
+  a.href = ok ? waURL(ph, guestMsg(p,$("#gName").value.trim())) : "#";
+}
+function handoffURL(){
+  const f=document.querySelector("[data-form]"); const ph=normPhone($("#gPhone").value);
+  const prm=new URLSearchParams({s:f.dataset.form,t:ph,n:$("#gName").value.trim(),f:$("#gFU").value});
+  return location.href.split("#")[0]+"#"+prm.toString();
+}
+function showQR(){
+  const ph=normPhone($("#gPhone").value);
+  if(!ph){toast("رقم الجوال مش صحيح");return;}
+  if(!$("#gOK").checked){toast("علّم على موافقة الضيف الأول");return;}
+  const url=handoffURL();
+  try{const q=qrcode(0,"M");q.addData(url);q.make();$("#qrImg").innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true});}
+  catch(e){$("#qrImg").textContent="مقدرتش أعمل QR";}
+  const p=P.find(x=>x.id===document.querySelector("[data-form]").dataset.form);
+  $("#qrInfo").textContent="هتتفتح «"+p.ar+"» على موبايلك والرقم مكتوب. اضغط «افتح واتساب وابعت» من الموبايل.";
+  $("#qrModal").hidden=false;
+}
+function receiveHandoff(){
+  if(!location.hash.startsWith("#s=")) return;
+  const prm=new URLSearchParams(location.hash.slice(1)); const id=prm.get("s"); const p=P.find(x=>x.id===id);
+  try{history.replaceState(null,"",location.href.split("#")[0]);}catch(e){}
+  if(!p) return;
+  state.sec=secOf(p.sub).k; state.open=id; state.send=id; state.q=""; state.need=null; render();
+  $("#gPhone").value=prm.get("t")?("0"+prm.get("t").replace(/^966/,"")):"";
+  $("#gName").value=prm.get("n")||""; $("#gFU").value=prm.get("f")||""; $("#gOK").checked=true; updateWA();
+  const form=document.querySelector("[data-form]");
+  form.insertAdjacentHTML("afterbegin",`<div class="handoff">جاية من الـ POS ✅ راجع البيانات واضغط «افتح واتساب وابعت».${prm.get("f")?" المتابعة هتتسجل على موبايلك.":""}</div>`);
+  setTimeout(()=>form.scrollIntoView({block:"center"}),50);
+}
+function renderFU(){
+  purgeFU(); const t=todayISO(); const due=FU.filter(f=>f.due<=t).length;
+  $("#fuBtn").innerHTML = "📋 متابعات الضيوف"+(due?`<span class="badge">${due}</span>`:"");
+  const list=[...FU].sort((a,b)=>a.due.localeCompare(b.due));
+  $("#fuList").innerHTML = list.length? list.map(f=>{
+    const p=P.find(x=>x.id===f.pkg); const late=f.due<=t;
+    return `<div class="fu"><div><b>${f.name||"ضيف"}</b> · <span dir="ltr">+${f.phone}</span><br>${p?p.ar:f.pkg}<div class="due ${late?"late":"ok"}">${late?"موعد المتابعة النهارده أو فات":"المتابعة"}: <span dir="ltr">${f.due}</span></div></div>
+      <div class="acts"><a class="wa" href="${waURL(f.phone, reminderMsg(p,f.name))}" target="_blank" rel="noopener">تذكير واتساب</a><a class="btn" href="${calURL(f,p)}" target="_blank" rel="noopener">📅 للتقويم</a><button class="btn" data-fudone="${f.id}">تم</button></div></div>`;}).join("")
+    : `<p class="hint">مفيش متابعات. لما تبعت باقة لضيف وتختار «بعد الراتب» أو موعد تاني، هتظهر هنا.</p>`;
+}
+function reminderMsg(p,name){
+  if(!p) return "";
+  const m=money(p.price);
+  const l=[`السلام عليكم${name?" "+name:""} 🌿`,`حبيت أذكّر حضرتك بـ *${p.ar}* اللي سألت عنها في الصيدلية.`];
+  if(m) l.push(`السعر: ${fmt(m.inc)} ر.س شامل الضريبة`);
+  if(p.price) l.push("ومتاح الدفع بالتقسيط مع تمارا.");
+  l.push("تحب أساعدك في الحجز وأشوفلك أقرب موعد؟");
+  const sig=signature(); if(sig) l.push("",sig);
+  return l.join("\n");
+}
+
+function guestMsg(p,name){
+  const m = money(p.price);
+  const lines = [`السلام عليكم${name?" "+name:""} 🌿`,"زي ما اتكلمنا في الصيدلية، دي تفاصيل الباقة:","",`*${p.ar}*`, p.en];
+  if(m) lines.push(`السعر: ${fmt(m.inc)} ر.س شامل الضريبة${p.before?` (بدل ${fmt(p.before)})`:""}`);
+  const list = p.groups ? p.groups.map(g=>`- ${g[0]}: ${g[1].join("، ")}`) : (p.items||[]).map(i=>`- ${i}`);
+  lines.push("المحتوى:", ...list);
+  if(p.follow) lines.push(p.follow);
+  if(p.price) lines.push("ومتاح الدفع بالتقسيط مع تمارا.");
+  lines.push("","طريقة التفعيل: اشتري البطاقة من الصيدلية أو أونلاين، واحجز موعدك من تطبيق عيادات النهدي كير.","خدمة العملاء: 920024673");
+  const sig=signature(); if(sig) lines.push("",sig);
+  return lines.join("\n");
+}
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),1600);}
+async function copy(t,ok){ try{ await navigator.clipboard.writeText(t); toast(ok);}catch(e){ toast("النسخ مش متاح هنا. حدد النص وانسخه يدويًا."); } }
+
+document.addEventListener("click",e=>{
+  const w=e.target.closest("#gWA");
+  if(w){
+    if(w.getAttribute("aria-disabled")==="true"){e.preventDefault();toast(!normPhone($("#gPhone").value)?"رقم الجوال مش صحيح":"علّم على موافقة الضيف الأول");return;}
+    const opt=$("#gFU").value; const due=dueFrom(opt);
+    if(due){FU.push({id:Date.now().toString(36),name:$("#gName").value.trim(),phone:normPhone($("#gPhone").value),pkg:document.querySelector("[data-form]").dataset.form,due,created:todayISO()});
+      if(lsSet("wc_fu",FU)) toast("اتسجلت متابعة يوم \u2066"+due+"\u2069. من «📋 متابعات الضيوف» اضغط «📅 للتقويم» عشان يجيلك تنبيه"); else toast("المتابعة ما اتحفظتش على الجهاز ده");
+      renderFU();}
+    return;
+  }
+  const t=e.target.closest("[data-sec],[data-cat],[data-need],[data-id],[data-copy],[data-code],[data-send],[data-panel],[data-fudone]");
+  if(!t) return;
+  if(t.dataset.panel){const el=$("#panel-"+t.dataset.panel);const other=$("#panel-"+(t.dataset.panel==="me"?"fu":"me"));other.hidden=true;el.hidden=!el.hidden;if(t.dataset.panel==="fu")renderFU();return;}
+  if(t.dataset.fudone){FU=FU.filter(f=>f.id!==t.dataset.fudone);lsSet("wc_fu",FU);renderFU();return;}
+  if(t.dataset.send){state.send = state.send===t.dataset.send?null:t.dataset.send;render();setTimeout(()=>{const i=$("#gPhone");if(i)i.focus();},0);return;}
+  if(t.dataset.sec){state.sec=t.dataset.sec;state.q="";state.need=null;state.open=null;$("#q").value="";try{localStorage.setItem("wcai_sec",state.sec);}catch(err){}render();window.scrollTo({top:0});}
+  else if(t.dataset.cat){state.cat=t.dataset.cat;render();}
+  else if(t.dataset.need){state.need = state.need===t.dataset.need?null:t.dataset.need;render();}
+  else if(t.dataset.id){state.open = state.open===t.dataset.id?null:t.dataset.id;render();}
+  else if(t.dataset.copy){copy(guestMsg(P.find(p=>p.id===t.dataset.copy)),"اتنسخت الرسالة");}
+  else if(t.dataset.code){copy(t.dataset.code,"اتنسخ الكود");}
+});
+$("#qrClose").addEventListener("click",()=>{$("#qrModal").hidden=true;});
+document.addEventListener("click",e=>{if(e.target.closest("#gQR"))showQR();});
+window.addEventListener("hashchange",receiveHandoff);
+$("#q").addEventListener("input",e=>{state.q=e.target.value;render();});
+document.addEventListener("input",e=>{if(e.target.closest("[data-form]"))updateWA();});
+document.addEventListener("change",e=>{if(e.target.closest("[data-form]"))updateWA();});
+["meName","meMobile","meStore"].forEach(k=>{$("#"+k).value=ME[{meName:"name",meMobile:"mobile",meStore:"store"}[k]]||"";});
+$("#mePay").value=ME.pay||27;
+$("#meSave").addEventListener("click",()=>{ME={name:$("#meName").value.trim(),mobile:$("#meMobile").value.trim(),store:$("#meStore").value.trim(),pay:+$("#mePay").value||27};
+  toast(lsSet("wc_me",ME)?"اتحفظت بياناتك":"الحفظ مش متاح هنا");$("#panel-me").hidden=true;render();});
+$("#clear").addEventListener("click",()=>{state={...state,q:"",need:null,open:null};$("#q").value="";render();});
+$("#vatIncl").addEventListener("change",e=>{state.incl=e.target.checked;try{localStorage.setItem("wcai_vat_incl",state.incl?"1":"0");}catch(err){}render();});
+$("#foot").textContent = `البيانات مأخوذة من ${Object.keys(SRC).length} ملف في مشروع Store Manager. الأسعار والعروض بتتغير، فالسعر النهائي هو اللي على نظام البيع. أي بند عليه «راجع السعر» فيه اختلاف بين الملفات.`;
+render();
+renderFU();
+receiveHandoff();
+
+/* ================= Well Assist AI (need-to-package matcher) =================
+   AI picks package IDs from the catalog; everything shown (name, price, contents)
+   comes from the local catalog P. No guest name/phone is ever sent. */
+const AI_URL = "https://script.google.com/macros/s/AKfycbzjekCBQABGO7n4fwn_grcoBb3uAOlZDnD39CF_v50vU-cYoQHJEIhT-_c2pHdRrNXN/exec";   // <-- paste the Apps Script Web App /exec URL here (see ai-proxy/Code.gs)
+const AI_TIMEOUT_MS = 25000;
+state.ai = null;
+function aiDigest(){
+  return P.map(p=>({
+    id:p.id,
+    t:(p.ar||"").slice(0,80),
+    s:(secOf(p.sub)||{}).t||"",
+    f:[...(p.for||[]).slice(0,3),p.kw||""].join(" ، ").slice(0,180),
+    i:(p.items||(p.groups||[]).map(g=>g[0])).slice(0,5).join(", ").slice(0,140),
+    n:(p.needs||[]).join(",")
+  }));
+}
+function aiClean(t){
+  return String(t||"")
+    .replace(/https?:\/\/\S+/gi," ")
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g," ")
+    .replace(/[\d\u0660-\u0669]{5,}/g," ")
+    .replace(/\s+/g," ").trim().slice(0,400);
+}
+function aiStatus(msg,err){const e=$("#aiStat"); if(!e) return; e.textContent=msg||""; e.classList.toggle("err",!!err);}
+async function aiAsk(){
+  const need=aiClean($("#aiNeed").value);
+  if(need.length<4){aiStatus("اكتب وصف أوضح لاحتياج الضيف",true);return;}
+  if(!AI_URL){aiStatus("المساعد لسه مش متفعّل. استخدم البحث العادي.",true);return;}
+  const go=$("#aiGo"); go.disabled=true; aiStatus("بيفكّر…");
+  const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),AI_TIMEOUT_MS);
+  try{
+    const r=await fetch(AI_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({need,catalog:aiDigest()}),signal:ctl.signal});
+    const d=await r.json();
+    if(!d||!d.ok){
+      aiStatus(d&&d.error==="quota"?"خلّص حد المساعد النهارده. استخدم البحث العادي.":"المساعد مش متاح دلوقتي. استخدم البحث العادي.",true);
+      return;
+    }
+    const picks=(Array.isArray(d.picks)?d.picks:[]).map(x=>({p:P.find(q=>q.id===String(x&&x.id)),why:String((x&&x.why)||"").slice(0,200)})).filter(x=>x.p).slice(0,3);
+    state.ai={picks,ask:String(d.ask||"").slice(0,200),need};
+    state.open=null; state.q=""; state.need=null; $("#q").value="";
+    aiStatus(picks.length?"":"مفيش باقة واضحة للوصف ده");
+    $("#aiPanel").hidden=true; $("#aiOpen").setAttribute("aria-expanded","false");
+    render(); window.scrollTo({top:0});
+  }catch(e){
+    aiStatus("المساعد مش متاح دلوقتي. استخدم البحث العادي.",true);
+  }finally{clearTimeout(to);go.disabled=false;}
+}
+function aiHtml(){
+  const a=state.ai; if(!a) return "";
+  const body=a.picks.length
+    ? a.picks.map(x=>`<div class="aiwhy">${esc(x.why)}</div>${card(x.p)}`).join("")
+    : `<div class="empty">المساعد ما لقاش باقة مناسبة بوضوح. جرّب وصف أكتر أو ابحث بالكلمات.</div>`;
+  return `<section class="aires"><h2>🤖 ترشيحات المساعد</h2><p class="aid">ترشيح مساعد فقط. القرار الطبي للطبيب، والسعر النهائي من نظام البيع.</p>${body}${a.ask?`<div class="aiask"><b>اسأل الضيف:</b> ${esc(a.ask)}</div>`:""}<div style="margin-top:10px"><button class="btn" id="aiDone" type="button">إغلاق الترشيحات والرجوع للقائمة</button></div></section>`;
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+const _renderBase = render;
+render = function(){
+  _renderBase();
+  if(state.ai){ $("#list").innerHTML = aiHtml(); $("#count").textContent=""; }
+};
+$("#aiOpen").addEventListener("click",()=>{const p=$("#aiPanel");p.hidden=!p.hidden;$("#aiOpen").setAttribute("aria-expanded",String(!p.hidden));if(!p.hidden)setTimeout(()=>$("#aiNeed").focus(),0);});
+$("#aiClose").addEventListener("click",()=>{$("#aiPanel").hidden=true;$("#aiOpen").setAttribute("aria-expanded","false");});
+$("#aiGo").addEventListener("click",aiAsk);
+document.addEventListener("click",e=>{if(e.target.closest("#aiDone")){state.ai=null;state.open=null;render();}});
+
+document.addEventListener("click",e=>{if(state.ai&&e.target.closest("[data-sec],[data-need],[data-cat],#clear")){state.ai=null;}},true);
+$("#q").addEventListener("input",()=>{if(state.ai){state.ai=null;}},true);
+</script>
+</body>
+</html>
