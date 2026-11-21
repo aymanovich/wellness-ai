@@ -2901,7 +2901,7 @@ receiveHandoff();
    AI picks package IDs from the catalog; everything shown (name, price, contents)
    comes from the local catalog P. No guest name/phone is ever sent. */
 const AI_URL = "https://script.google.com/macros/s/AKfycbzjekCBQABGO7n4fwn_grcoBb3uAOlZDnD39CF_v50vU-cYoQHJEIhT-_c2pHdRrNXN/exec";   // <-- paste the Apps Script Web App /exec URL here (see ai-proxy/Code.gs)
-const AI_TIMEOUT_MS = 25000;
+const AI_TIMEOUT_MS = 45000;
 state.ai = null;
 function aiDigest(){
   return P.map(p=>({
@@ -2925,13 +2925,13 @@ async function aiAsk(){
   const need=aiClean($("#aiNeed").value);
   if(need.length<4){aiStatus("اكتب وصف أوضح لاحتياج الضيف",true);return;}
   if(!AI_URL){aiStatus("المساعد لسه مش متفعّل. استخدم البحث العادي.",true);return;}
-  const go=$("#aiGo"); go.disabled=true; aiStatus("بيفكّر…");
+  const go=$("#aiGo"); go.disabled=true; aiStatus("بيفكّر… (ممكن ياخد لحد نص دقيقة)");
   const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),AI_TIMEOUT_MS);
   try{
     const r=await fetch(AI_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({need,catalog:aiDigest()}),signal:ctl.signal});
     const d=await r.json();
     if(!d||!d.ok){
-      aiStatus(d&&d.error==="quota"?"خلّص حد المساعد النهارده. استخدم البحث العادي.":"المساعد مش متاح دلوقتي. استخدم البحث العادي.",true);
+      aiStatus(d&&d.error==="quota"?"خلّص حد المساعد النهارده. استخدم البحث العادي.":"المساعد مش متاح دلوقتي (رد الخدمة: "+String((d&&d.error)||"؟")+"). استخدم البحث العادي.",true);
       return;
     }
     const picks=(Array.isArray(d.picks)?d.picks:[]).map(x=>({p:P.find(q=>q.id===String(x&&x.id)),why:String((x&&x.why)||"").slice(0,200)})).filter(x=>x.p).slice(0,3);
@@ -2941,7 +2941,9 @@ async function aiAsk(){
     $("#aiPanel").hidden=true; $("#aiOpen").setAttribute("aria-expanded","false");
     render(); window.scrollTo({top:0});
   }catch(e){
-    aiStatus("المساعد مش متاح دلوقتي. استخدم البحث العادي.",true);
+    aiStatus(e&&e.name==="AbortError"
+      ? "الرد اتأخر أكتر من "+Math.round(AI_TIMEOUT_MS/1000)+" ثانية (الشبكة بطيئة أو الخدمة مشغولة). جرّب تاني أو استخدم البحث العادي."
+      : "مفيش اتصال بخدمة المساعد من الشبكة دي ("+String((e&&e.name)||"error")+"). استخدم البحث العادي.",true);
   }finally{clearTimeout(to);go.disabled=false;}
 }
 function aiHtml(){
